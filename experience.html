@@ -207,7 +207,7 @@
             // 計算起始位置：
             // X 置中；Z 整體偏前方一點（例如 0.8 起跳，避免貼太近鏡頭）
             const startX = -(gridCols - 1) * spacingX / 2;
-            const startZ = 0.8;
+            const startZ = -1.5;
             const depthLayers = 2; // 分 2 層高度
             // 整體高度往上抬（例如 1.0 左右），讓圖片出現在掃描畫面的中上方
             const startY = 1.0;
@@ -252,6 +252,26 @@
                 );
 
                 marker.appendChild(img);
+            });
+        }
+
+        // 讓掃描到的物件在畫面中「保留，不會因為 marker 消失就一起消失」
+        function setupMarkerPersistence() {
+            const marker = document.getElementById("animated-marker");
+            if (!marker) return;
+
+            let hasBeenSeen = false;
+
+            // 第一次偵測到 marker
+            marker.addEventListener("markerFound", function () {
+                hasBeenSeen = true;
+            });
+
+            // 當 AR.js 判定 marker 消失時，強制把內容保持顯示
+            marker.addEventListener("markerLost", function () {
+                if (!hasBeenSeen) return;
+                // 保持最後一個姿態與位置，讓物件停留在畫面中
+                marker.object3D.visible = true;
             });
         }
 
@@ -337,10 +357,12 @@
         window.addEventListener("load", function () {
             if (document.readyState === "complete") {
                 injectImagesIntoMarker();
+                setupMarkerPersistence();
                 setupCapture();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
                     injectImagesIntoMarker();
+                    setupMarkerPersistence();
                     setupCapture();
                 });
             }

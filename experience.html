@@ -196,20 +196,40 @@
 
             const images = pickRandomImages(IMAGE_CONFIG.images, 20);
             const step = (Math.PI * 2) / Math.max(images.length, 1);
-            const radius = 1.0;
 
             images.forEach((src, index) => {
                 const angle = step * index;
+
+                // 基礎半徑，稍微加入隨機，避免圖片擠在同一圈
+                const baseRadius = 1.0;
+                const radiusJitter = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
+                const radius = baseRadius + radiusJitter;
+
+                // x / z 依角度與半徑計算
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
 
+                // y 高度（前後距離），每張都不同，讓看起來有前後層次
+                const y = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
+
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
-                img.setAttribute("position", x + " 0 " + z);
+                img.setAttribute("position", `${x} ${y} ${z}`);
                 img.setAttribute("rotation", "-90 0 0");
                 img.setAttribute("scale", "0.7 0.7 0.7");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
+
+                // 加上「游動」效果：在原位置附近左右/前後來回移動
+                const swimOffsetX = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
+                const swimOffsetZ = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
+                const swimDuration = 4000 + Math.random() * 3000; // 4~7 秒
+
+                img.setAttribute(
+                    "animation__swim",
+                    `property=position; dir=alternate; loop=true; easing=linear; dur=${swimDuration}; ` +
+                    `to: ${x + swimOffsetX} ${y} ${z + swimOffsetZ}`
+                );
 
                 marker.appendChild(img);
             });

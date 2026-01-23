@@ -161,35 +161,22 @@
     </div>
 
     <script>
-        // 簡單 JSON 設定：可視為來自外部 JSON 檔的資料結構
+        // 根據命名規則自動產生圖片列表：img (1).png ~ img (654).png
         const IMAGE_CONFIG = {
-            images: [
-                "assets/img01.png",
-                "assets/img02.png",
-                "assets/img03.png",
-                "assets/img04.png",
-                "assets/img05.png",
-                "assets/img06.png",
-                "assets/img07.png",
-                "assets/img08.png",
-                "assets/img09.png",
-                "assets/img10.png",
-                "assets/img11.png",
-                "assets/img12.png",
-                "assets/img13.png",
-                "assets/img14.png",
-                "assets/img15.png",
-                "assets/img16.png",
-                "assets/img17.png",
-                "assets/img18.png",
-                "assets/img19.png",
-                "assets/img20.png",
-                "assets/img21.png",
-                "assets/img22.png",
-                "assets/img23.png",
-                "assets/img24.png"
-            ]
+            images: []
         };
+
+        (function fillImageConfig() {
+            // 如果圖片都放在 assets 資料夾，副檔名為 .png
+            const basePath = "assets/";
+            const prefix = "img (";
+            const suffix = ").png";
+            const totalCount = 40;
+
+            for (let i = 1; i <= totalCount; i++) {
+                IMAGE_CONFIG.images.push(`${basePath}${prefix}${i}${suffix}`);
+            }
+        })();
 
         // 從 JSON 中隨機抽取最多 20 張圖片
         function pickRandomImages(list, maxCount) {

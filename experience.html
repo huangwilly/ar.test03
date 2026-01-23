@@ -196,19 +196,20 @@
 
             const images = pickRandomImages(IMAGE_CONFIG.images, 10);
             
-            // 使用3D網格均勻分布，確保圖片不重疊
-            // 計算網格尺寸（假設是 4x5 的網格，分佈在 X-Z 平面，Y 軸做深度層次）
+            // 使用 3D 網格均勻分布，確保圖片不重疊且適合手機畫面
+            // X：左右；Z：遠近（往前方）；Y：高低（避免完全擋住人臉）
             const gridCols = 5; // X 軸方向
             const gridRows = Math.ceil(images.length / gridCols); // Z 軸方向
-            const spacingX = 1.2; // X 軸間距（避免重疊）
-            const spacingZ = 1.2; // Z 軸間距
-            const spacingY = 0.8; // Y 軸深度間距（前後層次）
+            const spacingX = 0.8; // X 軸間距（控制橫向寬度，避免太出框）
+            const spacingZ = 0.7; // Z 軸間距（控制遠近深度）
+            const spacingY = 0.4; // Y 軸深度間距（上下層次，但不會太高）
             
-            // 計算起始位置（讓網格居中）
+            // 計算起始位置：
+            // X 置中；Z 整體偏前方一點（例如 0.8 起跳，避免貼太近鏡頭）
             const startX = -(gridCols - 1) * spacingX / 2;
-            const startZ = -(gridRows - 1) * spacingZ / 2;
-            const depthLayers = 3; // 分3層深度
-            const startY = -(depthLayers - 1) * spacingY / 2;
+            const startZ = 0.8;
+            const depthLayers = 2; // 分 2 層高度即可，避免有的太高或太低
+            const startY = 0.4; // 整體略高於 marker 平面，避免壓在桌面上
 
             images.forEach((src, index) => {
                 // 計算網格位置
@@ -226,9 +227,9 @@
                 const x = baseX + offsetX;
                 const z = baseZ + offsetZ;
                 
-                // Y 軸深度：分層分布，每層有輕微隨機
+                // Y 軸高度：分層分布，每層有輕微隨機
                 const layer = index % depthLayers;
-                const yOffset = (Math.random() - 0.5) * 0.2; // 層內小隨機
+                const yOffset = (Math.random() - 0.5) * 0.25; // 層內小隨機
                 const y = startY + layer * spacingY + yOffset;
 
                 const img = document.createElement("a-image");
@@ -239,11 +240,11 @@
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
 
-                // 增強「游動」效果：移動幅度更大、速度更快
-                const swimOffsetX = (Math.random() - 0.5) * 1.2; // -0.6 ~ 0.6（增加幅度）
-                const swimOffsetZ = (Math.random() - 0.5) * 1.2;
-                const swimOffsetY = (Math.random() - 0.5) * 0.4; // 也加入上下移動
-                const swimDuration = 2000 + Math.random() * 1500; // 2~3.5 秒（加快速度）
+                // 「游動」效果：每張圖在自己的小範圍內來回移動，適合手機觀賞
+                const swimOffsetX = (Math.random() - 0.5) * 0.8; // 左右擺動，避免游出畫面太遠
+                const swimOffsetZ = (Math.random() - 0.5) * 0.8; // 前後擺動
+                const swimOffsetY = (Math.random() - 0.5) * 0.35; // 上下略微波動
+                const swimDuration = 2200 + Math.random() * 1800; // 2.2 ~ 4 秒
 
                 img.setAttribute(
                     "animation__swim",

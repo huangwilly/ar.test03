@@ -332,8 +332,34 @@
                 img.setAttribute("scale", "0.7 0.7 0.7");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
+                // 移除透明外框：設置材質屬性
+                img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
 
                 marker.appendChild(img);
+
+                // 圖片加載後移除透明外框
+                img.addEventListener("loaded", function() {
+                    setTimeout(() => {
+                        const mesh = img.object3D.children[0];
+                        if (mesh && mesh.material) {
+                            // 確保材質不透明且無邊框
+                            mesh.material.transparent = false;
+                            mesh.material.opacity = 1;
+                            mesh.material.alphaTest = 0.1; // 降低 alphaTest 值以移除透明邊緣
+                            mesh.material.depthWrite = true;
+                            // 使用 A-Frame 的 THREE 引用
+                            const THREE = AFRAME.THREE;
+                            if (THREE) {
+                                mesh.material.side = THREE.DoubleSide;
+                            }
+                            // 移除任何可能導致邊框的屬性
+                            if (mesh.material.map) {
+                                mesh.material.map.flipY = false;
+                            }
+                            mesh.material.needsUpdate = true;
+                        }
+                    }, 100);
+                });
 
                 // 存儲圖片數據到動畫系統
                 ImageAnimationSystem.images.push({

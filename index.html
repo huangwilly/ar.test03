@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Web AR 體驗導覽</title>
+    <!-- 重要：入口頁不載入任何 A-Frame / AR.js 腳本，避免啟動相機 -->
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 960px;
+            background: rgba(15, 23, 42, 0.92);
+            border-radius: 24px;
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.75),
+                0 0 0 1px rgba(148, 163, 184, 0.12);
+            padding: 24px;
+            backdrop-filter: blur(18px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .title-block h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            letter-spacing: 0.03em;
+        }
+
+        .title-block p {
+            margin: 4px 0 0;
+            font-size: 0.9rem;
+            color: #9ca3af;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #22c55e, #14b8a6);
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #022c22;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+            gap: 20px;
+        }
+
+        .modes {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mode-button {
+            border: none;
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            background: rgba(15, 23, 42, 0.85);
+            color: inherit;
+            transition:
+                background 0.2s ease,
+                transform 0.12s ease,
+                box-shadow 0.12s ease;
+        }
+
+        .mode-button:hover {
+            background: rgba(30, 64, 175, 0.85);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(30, 64, 175, 0.55);
+        }
+
+        .mode-button.active {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: #eff6ff;
+            box-shadow: 0 12px 36px rgba(37, 99, 235, 0.7);
+        }
+
+        .mode-main {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            text-align: left;
+        }
+
+        .mode-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .mode-sub {
+            font-size: 0.8rem;
+            color: #cbd5f5;
+        }
+
+        .mode-pill {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(191, 219, 254, 0.5);
+            background: rgba(15, 23, 42, 0.6);
+        }
+
+        .panel {
+            border-radius: 18px;
+            background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.32), transparent 55%),
+                        radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.32), transparent 55%),
+                        rgba(15, 23, 42, 0.88);
+            padding: 16px 18px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel h2 {
+            margin: 0 0 6px;
+            font-size: 1.1rem;
+        }
+
+        .panel p {
+            margin: 4px 0;
+            font-size: 0.9rem;
+            color: #d1d5db;
+        }
+
+        .panel ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+            font-size: 0.85rem;
+            color: #cbd5f5;
+        }
+
+        .panel ul li {
+            margin-top: 4px;
+        }
+
+        .cta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 14px;
+        }
+
+        .start-button {
+            border: none;
+            padding: 11px 22px;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #0b1120;
+            background: linear-gradient(135deg, #22c55e, #a3e635);
+            box-shadow:
+                0 14px 35px rgba(34, 197, 94, 0.4),
+                0 0 0 1px rgba(190, 242, 100, 0.7);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .start-button span {
+            display: inline-block;
+        }
+
+        .start-button:hover {
+            transform: translateY(-1px);
+            box-shadow:
+                0 18px 45px rgba(34, 197, 94, 0.55),
+                0 0 0 1px rgba(190, 242, 100, 0.9);
+        }
+
+        .note {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        @media (max-width: 720px) {
+            .shell {
+                padding: 18px;
+                border-radius: 18px;
+            }
+
+            .grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .cta-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <header class="header">
+            <div class="title-block">
+                <h1>Web AR 沉浸式體驗</h1>
+                <p>先了解玩法與亮點，再進入相機啟動的 AR 體驗頁。</p>
+            </div>
+            <div class="badge">Camera Off · Safe View</div>
+        </header>
+
+        <section class="grid">
+            <div class="modes">
+                <button class="mode-button active" data-mode="immersive">
+                    <div class="mode-main">
+                        <div class="mode-title">沉浸 Immersive</div>
+                        <div class="mode-sub">空間感強烈，彷彿把實體模型放在桌面上。</div>
+                    </div>
+                    <div class="mode-pill">空間臨場感</div>
+                </button>
+
+                <button class="mode-button" data-mode="easy">
+                    <div class="mode-main">
+                        <div class="mode-title">易用 Easy</div>
+                        <div class="mode-sub">點擊、拖曳、縮放都直覺，無需學習成本。</div>
+                    </div>
+                    <div class="mode-pill">一指就上手</div>
+                </button>
+
+                <button class="mode-button" data-mode="beautiful">
+                    <div class="mode-main">
+                        <div class="mode-title">精美 Aesthetic</div>
+                        <div class="mode-sub">高品質模型與光影，呈現細節與質感。</div>
+                    </div>
+                    <div class="mode-pill">畫質與細節</div>
+                </button>
+            </div>
+
+            <article class="panel" id="mode-panel">
+                <h2>沉浸模式 · Immersive</h2>
+                <p>透過 Marker 追蹤與 3D 場景配置，讓虛擬模型實際「站在」你的桌面或書本上。</p>
+                <ul>
+                    <li>支援旋轉與縮放手勢，從任何角度觀察細節。</li>
+                    <li>結合實際環境光源，呈現更自然的立體感。</li>
+                    <li>適合展示產品 Demo、展覽導覽或課堂互動。</li>
+                </ul>
+                <div class="cta-row">
+                    <button
+                        class="start-button"
+                        type="button"
+                        onclick="window.location.href='experience.html'"
+                    >
+                        <span>開始體驗</span>
+                        <span>→</span>
+                    </button>
+                    <p class="note">點擊後才會啟動相機並進入 AR 模組。</p>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const content = {
+                immersive: {
+                    title: "沉浸模式 · Immersive",
+                    body: [
+                        "透過 Marker 追蹤與 3D 場景配置，讓虛擬模型實際「站在」你的桌面或書本上。",
+                        "最適合導覽、展覽或教學情境，讓使用者在真實環境中感受數位內容。"
+                    ],
+                    bullets: [
+                        "支援旋轉與縮放手勢，從任何角度觀察細節。",
+                        "結合實際環境光源，呈現更自然的立體感。",
+                        "適合展示產品 Demo、展覽導覽或課堂互動。"
+                    ]
+                },
+                easy: {
+                    title: "易用模式 · Easy",
+                    body: [
+                        "操作邏輯貼近一般手機手勢，無論大人小孩都能快速上手。",
+                        "只需對準 Marker，即可立即看到內容，無需額外安裝 App。"
+                    ],
+                    bullets: [
+                        "單指拖曳旋轉，雙指即可縮放模型大小。",
+                        "介面簡潔，只有關鍵按鈕與引導提示。",
+                        "支援跨平台瀏覽器，手機、平板皆可體驗。"
+                    ]
+                },
+                beautiful: {
+                    title: "精美模式 · Aesthetic",
+                    body: [
+                        "採用高品質材質與光影設定，突顯模型細節與質感。",
+                        "即使在一般照明環境，也能保有清晰銳利的輪廓。"
+                    ],
+                    bullets: [
+                        "針對行動裝置進行效能優化，兼顧流暢度與畫質。",
+                        "適合品牌形象展示、藝術作品或高質感產品。",
+                        "支援多張圖片素材與自定場景配置。"
+                    ]
+                }
+            };
+
+            const panel = document.getElementById("mode-panel");
+            const buttons = Array.from(
+                document.querySelectorAll(".mode-button")
+            );
+
+            function render(modeKey) {
+                const data = content[modeKey];
+                if (!data || !panel) return;
+
+                panel.innerHTML = "";
+
+                const h2 = document.createElement("h2");
+                h2.textContent = data.title;
+                panel.appendChild(h2);
+
+                data.body.forEach((t) => {
+                    const p = document.createElement("p");
+                    p.textContent = t;
+                    panel.appendChild(p);
+                });
+
+                const ul = document.createElement("ul");
+                data.bullets.forEach((b) => {
+                    const li = document.createElement("li");
+                    li.textContent = b;
+                    ul.appendChild(li);
+                });
+                panel.appendChild(ul);
+
+                const ctaRow = document.createElement("div");
+                ctaRow.className = "cta-row";
+
+                const btn = document.createElement("button");
+                btn.className = "start-button";
+                btn.type = "button";
+                btn.onclick = function () {
+                    window.location.href = "experience.html";
+                };
+                const span1 = document.createElement("span");
+                span1.textContent = "開始體驗";
+                const span2 = document.createElement("span");
+                span2.textContent = "→";
+                btn.appendChild(span1);
+                btn.appendChild(span2);
+
+                const note = document.createElement("p");
+                note.className = "note";
+                note.textContent = "點擊後才會啟動相機並進入 AR 模組。";
+
+                ctaRow.appendChild(btn);
+                ctaRow.appendChild(note);
+                panel.appendChild(ctaRow);
+            }
+
+            buttons.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const mode = btn.getAttribute("data-mode");
+                    buttons.forEach((b) => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    render(mode);
+                });
+            });
+
+            // 初始化
+            render("immersive");
+        })();
+    </script>
+</body>
+</html>

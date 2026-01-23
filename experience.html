@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Web AR 體驗</title>
+
+    <!-- A-Frame 與 AR.js 相關腳本：保留原始架構要求 -->
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: #000;
+        }
+
+        .hud {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 12px;
+            z-index: 10;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .hud-bottom {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .hud button {
+            pointer-events: auto;
+            border: none;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .btn-back {
+            background: rgba(15, 23, 42, 0.9);
+            color: #e5e7eb;
+        }
+
+        .btn-back:hover {
+            background: rgba(30, 64, 175, 0.95);
+        }
+
+        .btn-capture {
+            padding: 10px 24px;
+            background: radial-gradient(circle at 30% 0, #f97316, #ef4444);
+            color: #f9fafb;
+            font-size: 0.9rem;
+        }
+
+        .btn-capture:hover {
+            box-shadow: 0 12px 32px rgba(248, 113, 113, 0.6);
+        }
+
+        .capture-preview {
+            position: fixed;
+            right: 10px;
+            bottom: 10px;
+            width: 90px;
+            height: 160px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.8);
+            background: #020617;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 9;
+        }
+
+        .capture-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .capture-preview span {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            padding: 4px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- AR 場景：沿用原始架構，renderer 增加 preserveDrawingBuffer 以支援截圖 -->
+    <a-scene
+        vr-mode-ui="enabled: false;"
+        loading-screen="enabled: false;"
+        renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true;"
+        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+        id="scene"
+        embedded
+        gesture-detector
+    >
+        <!-- 資產將由 JavaScript 依 JSON 動態注入，不再於此處直接配置 <a-asset-item> 模型 -->
+        <a-assets id="dynamic-assets"></a-assets>
+
+        <a-marker
+            id="animated-marker"
+            type="pattern"
+            preset="custom"
+            url="assets/marker.patt"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+            id="markerA"
+        >
+            <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- 介面 HUD：返回首頁與拍照按鈕 -->
+    <div class="hud">
+        <div class="hud-top">
+            <button class="btn-back" type="button" onclick="window.location.href='index.html'">
+                <span>← 返回首頁</span>
+            </button>
+        </div>
+        <div class="hud-bottom">
+            <button id="capture-btn" class="btn-capture" type="button">
+                拍照存圖
+            </button>
+        </div>
+    </div>
+
+    <!-- 拍照預覽縮圖 -->
+    <div id="capture-preview" class="capture-preview">
+        <span>拍照後在此預覽</span>
+    </div>
+
+    <script>
+        // 簡單 JSON 設定：可視為來自外部 JSON 檔的資料結構
+        const IMAGE_CONFIG = {
+            images: [
+                "assets/img01.png",
+                "assets/img02.png",
+                "assets/img03.png",
+                "assets/img04.png",
+                "assets/img05.png",
+                "assets/img06.png",
+                "assets/img07.png",
+                "assets/img08.png",
+                "assets/img09.png",
+                "assets/img10.png",
+                "assets/img11.png",
+                "assets/img12.png",
+                "assets/img13.png",
+                "assets/img14.png",
+                "assets/img15.png",
+                "assets/img16.png",
+                "assets/img17.png",
+                "assets/img18.png",
+                "assets/img19.png",
+                "assets/img20.png",
+                "assets/img21.png",
+                "assets/img22.png",
+                "assets/img23.png",
+                "assets/img24.png"
+            ]
+        };
+
+        // 從 JSON 中隨機抽取最多 20 張圖片
+        function pickRandomImages(list, maxCount) {
+            const copy = list.slice();
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy.slice(0, Math.min(maxCount, copy.length));
+        }
+
+        function injectImagesIntoMarker() {
+            const marker = document.getElementById("animated-marker");
+            if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
+                return;
+            }
+
+            const images = pickRandomImages(IMAGE_CONFIG.images, 20);
+            const step = (Math.PI * 2) / Math.max(images.length, 1);
+            const radius = 1.0;
+
+            images.forEach((src, index) => {
+                const angle = step * index;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+
+                const img = document.createElement("a-image");
+                img.setAttribute("src", src);
+                img.setAttribute("position", x + " 0 " + z);
+                img.setAttribute("rotation", "-90 0 0");
+                img.setAttribute("scale", "0.7 0.7 0.7");
+                img.setAttribute("class", "clickable");
+                img.setAttribute("gesture-handler", "");
+
+                marker.appendChild(img);
+            });
+        }
+
+        // 拍照功能：合併 video 與 scene canvas
+        function setupCapture() {
+            const btn = document.getElementById("capture-btn");
+            const preview = document.getElementById("capture-preview");
+
+            if (!btn) return;
+
+            btn.addEventListener("click", function () {
+                const sceneEl = document.querySelector("a-scene");
+                const video = document.querySelector("video");
+
+                // A-Frame 會在 sceneEl 上掛 canvas
+                const sceneCanvas = sceneEl && sceneEl.canvas;
+
+                if (!video || !sceneCanvas) {
+                    console.warn("找不到 video 或 scene canvas，無法截圖。");
+                    return;
+                }
+
+                const width = video.videoWidth || sceneCanvas.width;
+                const height = video.videoHeight || sceneCanvas.height;
+
+                if (!width || !height) {
+                    console.warn("影像尺寸無效，請稍後再試。");
+                    return;
+                }
+
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+
+                // 先畫攝影機畫面
+                try {
+                    ctx.drawImage(video, 0, 0, width, height);
+                } catch (err) {
+                    console.error("無法繪製 video：", err);
+                }
+
+                // 再疊加 AR 場景
+                try {
+                    ctx.drawImage(sceneCanvas, 0, 0, width, height);
+                } catch (err) {
+                    console.error("無法繪製場景 canvas：", err);
+                }
+
+                canvas.toBlob(
+                    function (blob) {
+                        if (!blob) return;
+
+                        const url = URL.createObjectURL(blob);
+
+                        // 更新預覽縮圖
+                        if (preview) {
+                            preview.innerHTML = "";
+                            const img = document.createElement("img");
+                            img.src = url;
+                            preview.appendChild(img);
+                        }
+
+                        // 觸發下載
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "ar-capture-" + Date.now() + ".png";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+
+                        // 稍後釋放 URL
+                        setTimeout(function () {
+                            URL.revokeObjectURL(url);
+                        }, 10000);
+                    },
+                    "image/png"
+                );
+            });
+        }
+
+        // 等待 A-Frame 準備完成後進行注入與綁定
+        window.addEventListener("load", function () {
+            if (document.readyState === "complete") {
+                injectImagesIntoMarker();
+                setupCapture();
+            } else {
+                window.addEventListener("DOMContentLoaded", function () {
+                    injectImagesIntoMarker();
+                    setupCapture();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+

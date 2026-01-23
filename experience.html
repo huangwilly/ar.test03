@@ -208,8 +208,9 @@
             // X 置中；Z 整體偏前方一點（例如 0.8 起跳，避免貼太近鏡頭）
             const startX = -(gridCols - 1) * spacingX / 2;
             const startZ = 0.8;
-            const depthLayers = 2; // 分 2 層高度即可，避免有的太高或太低
-            const startY = 0.4; // 整體略高於 marker 平面，避免壓在桌面上
+            const depthLayers = 2; // 分 2 層高度
+            // 整體高度往上抬（例如 1.0 左右），讓圖片出現在掃描畫面的中上方
+            const startY = 1.0;
 
             images.forEach((src, index) => {
                 // 計算網格位置
@@ -229,7 +230,7 @@
                 
                 // Y 軸高度：分層分布，每層有輕微隨機
                 const layer = index % depthLayers;
-                const yOffset = (Math.random() - 0.5) * 0.25; // 層內小隨機
+                const yOffset = (Math.random() - 0.5) * 0.3; // 層內小隨機
                 const y = startY + layer * spacingY + yOffset;
 
                 const img = document.createElement("a-image");
@@ -241,7 +242,7 @@
                 img.setAttribute("gesture-handler", "");
 
                 // 左右慢慢晃動效果（不再像魚亂游，只在 X 軸小幅度擺動）
-                const swayAmplitude = 0.35; // 左右最大偏移
+                const swayAmplitude = 1; // 左右最大偏移
                 const swayDuration = 2800 + Math.random() * 1500; // 2.8 ~ 4.3 秒一來回
 
                 img.setAttribute(

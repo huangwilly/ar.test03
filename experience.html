@@ -194,62 +194,62 @@
                 return;
             }
 
+            // 隨機選取圖片
             const images = pickRandomImages(IMAGE_CONFIG.images, 10);
             
-            // 使用 3D 網格均勻分布，確保圖片不重疊且適合手機畫面
-            // X：左右；Z：遠近（往前方）；Y：高低（避免完全擋住人臉）
-            const gridCols = 5; // X 軸方向
-            const gridRows = Math.ceil(images.length / gridCols); // Z 軸方向
-            const spacingX = 0.8; // X 軸間距（控制橫向寬度，避免太出框）
-            const spacingZ = 0.7; // Z 軸間距（控制遠近深度）
-            const spacingY = 0.4; // Y 軸深度間距（上下層次，但不會太高）
-            
-            // 計算起始位置：
-            // X 置中；Z 整體偏前方一點（例如 0.8 起跳，避免貼太近鏡頭）
+            // 配置參數
+            const gridCols = 4; 
+            const spacingX = 1.0; 
+            const spacingZ = 1.0; 
             const startX = -(gridCols - 1) * spacingX / 2;
-            const startZ = -1.5;
-            const depthLayers = 2; // 分 2 層高度
-            // 整體高度往上抬（例如 1.0 左右），讓圖片出現在掃描畫面的中上方
-            const startY = 1.0;
+            
+            // 【優化 1】將 startZ 設定為負值（-1.5），解決物件在畫面下方、太靠近手機的問題
+            const startZ = -1.5; 
+            // 【優化 2】提高 Y 軸起始高度，增加懸浮感
+            const startY = 1.8; 
 
             images.forEach((src, index) => {
-                // 計算網格位置
                 const col = index % gridCols;
                 const row = Math.floor(index / gridCols);
                 
-                // 基礎位置（網格）
-                const baseX = startX + col * spacingX;
-                const baseZ = startZ + row * spacingZ;
-                
-                // 加入隨機偏移，讓分布更自然（但保持間距）
-                const offsetX = (Math.random() - 0.5) * 0.3; // 小範圍隨機
-                const offsetZ = (Math.random() - 0.5) * 0.3;
-                
-                const x = baseX + offsetX;
-                const z = baseZ + offsetZ;
-                
-                // Y 軸高度：分層分布，每層有輕微隨機
-                const layer = index % depthLayers;
-                const yOffset = (Math.random() - 0.5) * 0.3; // 層內小隨機
-                const y = startY + layer * spacingY + yOffset;
+                // 基礎位置計算
+                const x = startX + col * spacingX + (Math.random() - 0.5) * 0.4;
+                const z = startZ - (row * spacingZ); 
+                const y = startY + (index % 3) * 0.4; // 讓不同圖片有高低層次
 
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${x} ${y} ${z}`);
-                img.setAttribute("rotation", "-90 0 0");
-                img.setAttribute("scale", "0.7 0.7 0.7");
+                img.setAttribute("rotation", "-90 0 0"); // 平貼於 Marker
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
+                img.setAttribute("material", "transparent: true; alphaTest: 0.5;"); // 優化 PNG 透明邊緣
 
-                // 左右慢慢晃動效果（不再像魚亂游，只在 X 軸小幅度擺動）
-                const swayAmplitude = 1; // 左右最大偏移
-                const swayDuration = 2800 + Math.random() * 1500; // 2.8 ~ 4.3 秒一來回
-
+                // 【優化 3】進場動畫：由小變大的彈跳效果 (Pop-up)
+                img.setAttribute("scale", "0 0 0");
+                const popDelay = index * 150;
                 img.setAttribute(
-                    "animation__sway",
-                    `property=position; dir=alternate; loop=true; easing=easeInOutQuad; dur=${swayDuration}; ` +
-                    `to: ${x + swayAmplitude} ${y} ${z}`
+                    "animation__pop",
+                    `property=scale; to=0.8 0.8 0.8; dur=800; easing=easeOutBack; delay=${popDelay}`
                 );
+
+                // 【優化 4】持續動畫：微小的上下飄浮感，讓畫面變生動
+                const floatY = y + 0.2;
+                const floatDuration = 2000 + Math.random() * 1000;
+                img.setAttribute(
+                    "animation__float",
+                    `property=position; to=${x} ${floatY} ${z}; dir=alternate; loop=true; dur=${floatDuration}; easing=easeInOutSine`
+                );
+
+                // 【優化 5】點擊互動：觸碰圖片會旋轉一圈
+                img.addEventListener('click', function () {
+                    // 避免重複觸發，先移除舊動畫
+                    this.removeAttribute('animation__click'); 
+                    this.setAttribute(
+                        'animation__click',
+                        'property=rotation; from=-90 0 0; to=-90 360 0; dur=800; easing=easeInOutQuad'
+                    );
+                });
 
                 marker.appendChild(img);
             });

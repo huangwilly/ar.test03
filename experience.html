@@ -194,23 +194,42 @@
                 return;
             }
 
-            const images = pickRandomImages(IMAGE_CONFIG.images, 20);
-            const step = (Math.PI * 2) / Math.max(images.length, 1);
+            const images = pickRandomImages(IMAGE_CONFIG.images, 10);
+            
+            // 使用3D網格均勻分布，確保圖片不重疊
+            // 計算網格尺寸（假設是 4x5 的網格，分佈在 X-Z 平面，Y 軸做深度層次）
+            const gridCols = 5; // X 軸方向
+            const gridRows = Math.ceil(images.length / gridCols); // Z 軸方向
+            const spacingX = 1.2; // X 軸間距（避免重疊）
+            const spacingZ = 1.2; // Z 軸間距
+            const spacingY = 0.8; // Y 軸深度間距（前後層次）
+            
+            // 計算起始位置（讓網格居中）
+            const startX = -(gridCols - 1) * spacingX / 2;
+            const startZ = -(gridRows - 1) * spacingZ / 2;
+            const depthLayers = 3; // 分3層深度
+            const startY = -(depthLayers - 1) * spacingY / 2;
 
             images.forEach((src, index) => {
-                const angle = step * index;
-
-                // 基礎半徑，稍微加入隨機，避免圖片擠在同一圈
-                const baseRadius = 1.0;
-                const radiusJitter = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
-                const radius = baseRadius + radiusJitter;
-
-                // x / z 依角度與半徑計算
-                const x = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
-
-                // y 高度（前後距離），每張都不同，讓看起來有前後層次
-                const y = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
+                // 計算網格位置
+                const col = index % gridCols;
+                const row = Math.floor(index / gridCols);
+                
+                // 基礎位置（網格）
+                const baseX = startX + col * spacingX;
+                const baseZ = startZ + row * spacingZ;
+                
+                // 加入隨機偏移，讓分布更自然（但保持間距）
+                const offsetX = (Math.random() - 0.5) * 0.3; // 小範圍隨機
+                const offsetZ = (Math.random() - 0.5) * 0.3;
+                
+                const x = baseX + offsetX;
+                const z = baseZ + offsetZ;
+                
+                // Y 軸深度：分層分布，每層有輕微隨機
+                const layer = index % depthLayers;
+                const yOffset = (Math.random() - 0.5) * 0.2; // 層內小隨機
+                const y = startY + layer * spacingY + yOffset;
 
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
@@ -220,15 +239,16 @@
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
 
-                // 加上「游動」效果：在原位置附近左右/前後來回移動
-                const swimOffsetX = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
-                const swimOffsetZ = (Math.random() - 0.5) * 0.6; // -0.3 ~ 0.3
-                const swimDuration = 4000 + Math.random() * 3000; // 4~7 秒
+                // 增強「游動」效果：移動幅度更大、速度更快
+                const swimOffsetX = (Math.random() - 0.5) * 1.2; // -0.6 ~ 0.6（增加幅度）
+                const swimOffsetZ = (Math.random() - 0.5) * 1.2;
+                const swimOffsetY = (Math.random() - 0.5) * 0.4; // 也加入上下移動
+                const swimDuration = 2000 + Math.random() * 1500; // 2~3.5 秒（加快速度）
 
                 img.setAttribute(
                     "animation__swim",
-                    `property=position; dir=alternate; loop=true; easing=linear; dur=${swimDuration}; ` +
-                    `to: ${x + swimOffsetX} ${y} ${z + swimOffsetZ}`
+                    `property=position; dir=alternate; loop=true; easing=easeInOut; dur=${swimDuration}; ` +
+                    `to: ${x + swimOffsetX} ${y + swimOffsetY} ${z + swimOffsetZ}`
                 );
 
                 marker.appendChild(img);

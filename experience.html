@@ -190,12 +190,22 @@
 
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
-            if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
+            if (!marker) {
+                console.warn("找不到 marker 元素");
+                return;
+            }
+            if (!IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
+                console.warn("IMAGE_CONFIG 無效");
+                return;
+            }
+            if (IMAGE_CONFIG.images.length === 0) {
+                console.warn("圖片列表為空");
                 return;
             }
 
             // 隨機選取圖片
             const images = pickRandomImages(IMAGE_CONFIG.images, 10);
+            console.log(`準備注入 ${images.length} 張圖片`);
             
             // 配置參數
             const gridCols = 4; 
@@ -214,24 +224,33 @@
                 
                 // 基礎位置計算
                 const x = startX + col * spacingX + (Math.random() - 0.5) * 0.4;
-                const z = startZ - (row * spacingZ); 
+                const z = startZ + row * spacingZ; // 修正：使用 + 讓圖片往前方（負值變小）排列
                 const y = startY + (index % 3) * 0.4; // 讓不同圖片有高低層次
 
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${x} ${y} ${z}`);
                 img.setAttribute("rotation", "-90 0 0"); // 平貼於 Marker
+                img.setAttribute("scale", "0.8 0.8 0.8"); // 設置正常大小
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
                 img.setAttribute("material", "transparent: true; alphaTest: 0.5;"); // 優化 PNG 透明邊緣
 
+                // 先添加到 marker，確保元素已存在於 DOM
+                marker.appendChild(img);
+
                 // 【優化 3】進場動畫：由小變大的彈跳效果 (Pop-up)
-                img.setAttribute("scale", "0 0 0");
-                const popDelay = index * 150;
-                img.setAttribute(
-                    "animation__pop",
-                    `property=scale; to=0.8 0.8 0.8; dur=800; easing=easeOutBack; delay=${popDelay}`
-                );
+                // 等待下一幀確保元素已渲染
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        img.setAttribute("scale", "0 0 0");
+                        const popDelay = index * 150;
+                        img.setAttribute(
+                            "animation__pop",
+                            `property=scale; to=0.8 0.8 0.8; dur=800; easing=easeOutQuad; delay=${popDelay}`
+                        );
+                    });
+                });
 
                 // 【優化 4】持續動畫：微小的上下飄浮感，讓畫面變生動
                 const floatY = y + 0.2;
@@ -250,8 +269,6 @@
                         'property=rotation; from=-90 0 0; to=-90 360 0; dur=800; easing=easeInOutQuad'
                     );
                 });
-
-                marker.appendChild(img);
             });
         }
 
@@ -354,18 +371,31 @@
         }
 
         // 等待 A-Frame 準備完成後進行注入與綁定
-        window.addEventListener("load", function () {
-            if (document.readyState === "complete") {
+        const scene = document.querySelector("a-scene");
+        
+        if (scene && scene.hasLoaded) {
+            // 如果 scene 已經載入
+            injectImagesIntoMarker();
+            setupMarkerPersistence();
+            setupCapture();
+        } else {
+            // 等待 scene 載入完成
+            scene.addEventListener("loaded", function () {
                 injectImagesIntoMarker();
                 setupMarkerPersistence();
                 setupCapture();
-            } else {
-                window.addEventListener("DOMContentLoaded", function () {
+            });
+        }
+        
+        // 備用方案：如果上述方法都失敗，使用 window load
+        window.addEventListener("load", function () {
+            setTimeout(() => {
+                const marker = document.getElementById("animated-marker");
+                if (marker && marker.children.length === 0) {
+                    console.log("備用方案：重新注入圖片");
                     injectImagesIntoMarker();
-                    setupMarkerPersistence();
-                    setupCapture();
-                });
-            }
+                }
+            }, 1000);
         });
     </script>
 </body>

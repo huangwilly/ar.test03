@@ -240,16 +240,14 @@
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
 
-                // 「游動」效果：每張圖在自己的小範圍內來回移動，適合手機觀賞
-                const swimOffsetX = (Math.random() - 0.5) * 0.8; // 左右擺動，避免游出畫面太遠
-                const swimOffsetZ = (Math.random() - 0.5) * 0.8; // 前後擺動
-                const swimOffsetY = (Math.random() - 0.5) * 0.35; // 上下略微波動
-                const swimDuration = 2200 + Math.random() * 1800; // 2.2 ~ 4 秒
+                // 左右慢慢晃動效果（不再像魚亂游，只在 X 軸小幅度擺動）
+                const swayAmplitude = 0.35; // 左右最大偏移
+                const swayDuration = 2800 + Math.random() * 1500; // 2.8 ~ 4.3 秒一來回
 
                 img.setAttribute(
-                    "animation__swim",
-                    `property=position; dir=alternate; loop=true; easing=easeInOut; dur=${swimDuration}; ` +
-                    `to: ${x + swimOffsetX} ${y + swimOffsetY} ${z + swimOffsetZ}`
+                    "animation__sway",
+                    `property=position; dir=alternate; loop=true; easing=easeInOutQuad; dur=${swayDuration}; ` +
+                    `to: ${x + swayAmplitude} ${y} ${z}`
                 );
 
                 marker.appendChild(img);

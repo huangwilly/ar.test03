@@ -161,13 +161,132 @@
     </div>
 
     <script>
-        // 根據命名規則自動產生圖片列表：img (1).png ~ img (40).png
+        // 根據命名規則自動產生圖片列表：img (1).png ~ img (654).png
         const IMAGE_CONFIG = {
             images: []
         };
 
+        // 圖片動畫系統
+        const ImageAnimationSystem = {
+            images: [], // 存儲所有圖片實體和動畫數據
+            boundary: {
+                minX: -2.5,
+                maxX: 2.5,
+                minY: -1.5,
+                maxY: 1.5,
+                minZ: -2.5,
+                maxZ: 2.5
+            },
+            minDistance: 0.8, // 圖片之間的最小距離
+            animationId: null,
+            isRunning: false,
+
+            // 檢查位置是否與現有圖片重疊
+            isPositionValid(newPos, existingPositions) {
+                for (const pos of existingPositions) {
+                    const distance = Math.sqrt(
+                        Math.pow(newPos.x - pos.x, 2) +
+                        Math.pow(newPos.y - pos.y, 2) +
+                        Math.pow(newPos.z - pos.z, 2)
+                    );
+                    if (distance < this.minDistance) {
+                        return false;
+                    }
+                }
+                return true;
+            },
+
+            // 生成隨機位置（不重疊）
+            generateRandomPosition(existingPositions, maxAttempts = 50) {
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    const pos = {
+                        x: this.boundary.minX + Math.random() * (this.boundary.maxX - this.boundary.minX),
+                        y: this.boundary.minY + Math.random() * (this.boundary.maxY - this.boundary.minY),
+                        z: this.boundary.minZ + Math.random() * (this.boundary.maxZ - this.boundary.minZ)
+                    };
+                    if (this.isPositionValid(pos, existingPositions)) {
+                        return pos;
+                    }
+                }
+                // 如果無法找到不重疊的位置，返回隨機位置
+                return {
+                    x: this.boundary.minX + Math.random() * (this.boundary.maxX - this.boundary.minX),
+                    y: this.boundary.minY + Math.random() * (this.boundary.maxY - this.boundary.minY),
+                    z: this.boundary.minZ + Math.random() * (this.boundary.maxZ - this.boundary.minZ)
+                };
+            },
+
+            // 生成隨機速度
+            generateRandomVelocity() {
+                const speed = 0.01 + Math.random() * 0.02; // 速度範圍 0.01-0.03
+                return {
+                    x: (Math.random() - 0.5) * speed,
+                    y: (Math.random() - 0.5) * speed,
+                    z: (Math.random() - 0.5) * speed
+                };
+            },
+
+            // 更新圖片位置和處理邊界碰撞
+            updateImage(imageData) {
+                const { entity, position, velocity } = imageData;
+
+                // 更新位置
+                position.x += velocity.x;
+                position.y += velocity.y;
+                position.z += velocity.z;
+
+                // 檢查邊界碰撞並反彈
+                if (position.x <= this.boundary.minX || position.x >= this.boundary.maxX) {
+                    velocity.x = -velocity.x * (0.8 + Math.random() * 0.4); // 隨機反彈係數
+                    position.x = Math.max(this.boundary.minX, Math.min(this.boundary.maxX, position.x));
+                }
+                if (position.y <= this.boundary.minY || position.y >= this.boundary.maxY) {
+                    velocity.y = -velocity.y * (0.8 + Math.random() * 0.4);
+                    position.y = Math.max(this.boundary.minY, Math.min(this.boundary.maxY, position.y));
+                }
+                if (position.z <= this.boundary.minZ || position.z >= this.boundary.maxZ) {
+                    velocity.z = -velocity.z * (0.8 + Math.random() * 0.4);
+                    position.z = Math.max(this.boundary.minZ, Math.min(this.boundary.maxZ, position.z));
+                }
+
+                // 更新實體位置
+                if (entity && entity.object3D) {
+                    entity.object3D.position.set(position.x, position.y, position.z);
+                }
+            },
+
+            // 動畫循環
+            animate() {
+                if (!this.isRunning) return;
+
+                this.images.forEach(imageData => {
+                    if (imageData.entity && imageData.entity.object3D.visible) {
+                        this.updateImage(imageData);
+                    }
+                });
+
+                this.animationId = requestAnimationFrame(() => this.animate());
+            },
+
+            // 啟動動畫
+            start() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.animate();
+            },
+
+            // 停止動畫
+            stop() {
+                this.isRunning = false;
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                }
+            }
+        };
+
         (function fillImageConfig() {
-            // 圖片都放在 assets 資料夾，副檔名為 .png
+            // 如果圖片都放在 assets 資料夾，副檔名為 .png
             const basePath = "assets/";
             const prefix = "img (";
             const suffix = ").png";
@@ -178,104 +297,75 @@
             }
         })();
 
-        // 從列表中隨機抽取指定數量的圖片
-        function pickRandomImages(arr, count) {
-            const shuffled = [...arr].sort(() => 0.5 - Math.random());
-            return shuffled.slice(0, count);
+        // 從 JSON 中隨機抽取最多 20 張圖片
+        function pickRandomImages(list, maxCount) {
+            const copy = list.slice();
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
-            if (!marker || !IMAGE_CONFIG || !IMAGE_CONFIG.images.length) {
-                console.warn("Marker 或圖片配置不存在");
+            if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
                 return;
             }
 
-            // 隨機選取 12 張圖片（可調整數量）
-            const images = pickRandomImages(IMAGE_CONFIG.images, 5);
-            const gridCols = 4;
-            const spacingX = 0.9;
-            const spacingZ = 0.9;
-            const startX = -(gridCols - 1) * spacingX / 2;
-            
-            // 【關鍵修正】startZ 改為負數，確保物件出現在畫面中央上方，遠離螢幕底端
-            const startZ = -1.2; 
-            const startY = 1.5;
+            const images = pickRandomImages(IMAGE_CONFIG.images, 10);
+            const existingPositions = [];
 
             images.forEach((src, index) => {
-                const col = index % gridCols;
-                const row = Math.floor(index / gridCols);
-                
-                // 修正位置计算，避免图片重叠
-                const x = startX + col * spacingX + (Math.random() - 0.5) * 0.2;
-                const z = startZ + row * spacingZ; // 修正：使用 + 让图片往前方排列，避免重叠
-                const y = startY + (index % 3) * 0.3; // 减少Y轴随机偏移，避免重叠
+                // 生成不重疊的隨機位置
+                const position = ImageAnimationSystem.generateRandomPosition(existingPositions);
+                existingPositions.push({ ...position });
 
+                // 生成隨機速度
+                const velocity = ImageAnimationSystem.generateRandomVelocity();
+
+                // 創建圖片實體
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
-                img.setAttribute("position", `${x} ${y} ${z}`);
+                img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
                 img.setAttribute("rotation", "-90 0 0");
+                img.setAttribute("scale", "0.7 0.7 0.7");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
-                // 修正 PNG 透明度遮擋問題
-                img.setAttribute("material", "transparent: true; alphaTest: 0.5;");
-
-                // 【有趣效果 1】進場彈出動畫
-                img.setAttribute("scale", "0 0 0");
-                img.setAttribute("animation__pop", {
-                    property: 'scale',
-                    to: '0.8 0.8 0.8',
-                    dur: 800,
-                    easing: 'easeOutBack',
-                    delay: index * 100
-                });
-
-                // 【有趣效果 2】持續上下飄浮
-                img.setAttribute("animation__float", {
-                    property: 'position',
-                    to: `${x} ${y + 0.2} ${z}`,
-                    dir: 'alternate',
-                    loop: true,
-                    dur: 2000 + Math.random() * 1000,
-                    easing: 'easeInOutSine'
-                });
-
-                // 【有趣效果 3】點擊旋轉互動
-                img.addEventListener('click', function() {
-                    this.setAttribute('animation__click', {
-                        property: 'rotation',
-                        from: '-90 0 0',
-                        to: '-90 360 0',
-                        dur: 800,
-                        easing: 'easeInOutQuad'
-                    });
-                });
 
                 marker.appendChild(img);
-            });
-        }
 
-        // 讓掃描到的物件在畫面中「保留，不會因為 marker 消失就一起消失」
-        function setupMarkerPersistence() {
-            const marker = document.getElementById("animated-marker");
-            if (!marker) return;
-
-            let hasBeenSeen = false;
-
-            // 第一次偵測到 marker
-            marker.addEventListener("markerFound", function () {
-                hasBeenSeen = true;
-            });
-
-            // 當 AR.js 判定 marker 消失時，強制把內容保持顯示
-            marker.addEventListener("markerLost", function () {
-                if (!hasBeenSeen) return;
-                // 保持最後一個姿態與位置，讓物件停留在畫面中
-                // 使用 requestAnimationFrame 確保在 AR.js 隱藏後再顯示
-                requestAnimationFrame(() => {
-                    marker.object3D.visible = true;
+                // 存儲圖片數據到動畫系統
+                ImageAnimationSystem.images.push({
+                    entity: img,
+                    position: { ...position },
+                    velocity: velocity
                 });
             });
+
+            // 啟動動畫系統
+            ImageAnimationSystem.start();
+
+            // 監聽 marker 可見性，確保圖片持續顯示
+            let markerVisible = false;
+            const checkMarkerVisibility = () => {
+                const markerEl = document.getElementById("animated-marker");
+                if (markerEl && markerEl.object3D) {
+                    const wasVisible = markerVisible;
+                    markerVisible = markerEl.object3D.visible;
+
+                    // 當 marker 可見時，確保所有圖片都顯示
+                    if (markerVisible) {
+                        ImageAnimationSystem.images.forEach(imageData => {
+                            if (imageData.entity && imageData.entity.object3D) {
+                                imageData.entity.object3D.visible = true;
+                            }
+                        });
+                    }
+                }
+                requestAnimationFrame(checkMarkerVisibility);
+            };
+            checkMarkerVisibility();
         }
 
         // 拍照功能：合併 video 與 scene canvas
@@ -357,32 +447,21 @@
         }
 
         // 等待 A-Frame 準備完成後進行注入與綁定
-        const scene = document.querySelector("a-scene");
-        
-        if (scene && scene.hasLoaded) {
-            // 如果 scene 已經載入
-            injectImagesIntoMarker();
-            setupMarkerPersistence();
-            setupCapture();
-        } else {
-            // 等待 scene 載入完成
-            scene.addEventListener("loaded", function () {
-                injectImagesIntoMarker();
-                setupMarkerPersistence();
-                setupCapture();
-            });
-        }
-        
-        // 備用方案：如果上述方法都失敗，使用 window load
         window.addEventListener("load", function () {
-            setTimeout(() => {
-                const marker = document.getElementById("animated-marker");
-                if (marker && marker.children.length === 0) {
-                    console.log("備用方案：重新注入圖片");
+            if (document.readyState === "complete") {
+                injectImagesIntoMarker();
+                setupCapture();
+            } else {
+                window.addEventListener("DOMContentLoaded", function () {
                     injectImagesIntoMarker();
-                    setupMarkerPersistence();
-                }
-            }, 1000);
+                    setupCapture();
+                });
+            }
+        });
+
+        // 頁面卸載時停止動畫
+        window.addEventListener("beforeunload", function () {
+            ImageAnimationSystem.stop();
         });
     </script>
 </body>

@@ -133,7 +133,6 @@
             raycaster="objects: .clickable"
             emitevents="true"
             cursor="fuse: false; rayOrigin: mouse;"
-            id="markerA"
         >
             <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
         </a-marker>
@@ -161,13 +160,13 @@
     </div>
 
     <script>
-        // 根據命名規則自動產生圖片列表：img (1).png ~ img (654).png
+        // 根據命名規則自動產生圖片列表：img (1).png ~ img (40).png
         const IMAGE_CONFIG = {
             images: []
         };
 
         (function fillImageConfig() {
-            // 如果圖片都放在 assets 資料夾，副檔名為 .png
+            // 圖片都放在 assets 資料夾，副檔名為 .png
             const basePath = "assets/";
             const prefix = "img (";
             const suffix = ").png";
@@ -178,117 +177,79 @@
             }
         })();
 
-        // 從 JSON 中隨機抽取最多 20 張圖片
-        function pickRandomImages(list, maxCount) {
-            const copy = list.slice();
-            for (let i = copy.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [copy[i], copy[j]] = [copy[j], copy[i]];
-            }
-            return copy.slice(0, Math.min(maxCount, copy.length));
+        // 從列表中隨機抽取指定數量的圖片
+        function pickRandomImages(arr, count) {
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
         }
 
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
-            if (!marker) {
-                console.warn("找不到 marker 元素");
-                return;
-            }
-            if (!IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
-                console.warn("IMAGE_CONFIG 無效");
-                return;
-            }
-            if (IMAGE_CONFIG.images.length === 0) {
-                console.warn("圖片列表為空");
+            if (!marker || !IMAGE_CONFIG || !IMAGE_CONFIG.images.length) {
+                console.warn("Marker 或圖片配置不存在");
                 return;
             }
 
-            // 隨機選取圖片
-            const images = pickRandomImages(IMAGE_CONFIG.images, 10);
-            console.log(`準備注入 ${images.length} 張圖片`);
-            
-            // 配置參數
-            const gridCols = 4; 
-            const spacingX = 1.0; 
-            const spacingZ = 1.0; 
+            // 隨機選取 12 張圖片（可調整數量）
+            const images = pickRandomImages(IMAGE_CONFIG.images, 12);
+            const gridCols = 4;
+            const spacingX = 0.9;
+            const spacingZ = 0.9;
             const startX = -(gridCols - 1) * spacingX / 2;
             
-            // 【優化 1】將 startZ 設定為負值（-1.5），解決物件在畫面下方、太靠近手機的問題
-            const startZ = -1.5; 
-            // 【優化 2】提高 Y 軸起始高度，增加懸浮感
-            const startY = 1.8; 
+            // 【關鍵修正】startZ 改為負數，確保物件出現在畫面中央上方，遠離螢幕底端
+            const startZ = -1.2; 
+            const startY = 1.5;
 
             images.forEach((src, index) => {
                 const col = index % gridCols;
                 const row = Math.floor(index / gridCols);
                 
-                // 基礎位置計算
-                const x = startX + col * spacingX + (Math.random() - 0.5) * 0.4;
-                const z = startZ + row * spacingZ; // 修正：使用 + 讓圖片往前方（負值變小）排列
-                const y = startY + (index % 3) * 0.4; // 讓不同圖片有高低層次
+                const x = startX + col * spacingX + (Math.random() - 0.5) * 0.3;
+                const z = startZ - (row * spacingZ);
+                const y = startY + (index % 3) * 0.4;
 
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${x} ${y} ${z}`);
-                img.setAttribute("rotation", "-90 0 0"); // 平貼於 Marker
-                img.setAttribute("scale", "0.8 0.8 0.8"); // 設置正常大小
+                img.setAttribute("rotation", "-90 0 0");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
-                img.setAttribute("material", "transparent: true; alphaTest: 0.5;"); // 優化 PNG 透明邊緣
+                // 修正 PNG 透明度遮擋問題
+                img.setAttribute("material", "transparent: true; alphaTest: 0.5;");
 
-                // 先添加到 marker，確保元素已存在於 DOM
-                marker.appendChild(img);
+                // 【有趣效果 1】進場彈出動畫
+                img.setAttribute("scale", "0 0 0");
+                img.setAttribute("animation__pop", {
+                    property: 'scale',
+                    to: '0.8 0.8 0.8',
+                    dur: 800,
+                    easing: 'easeOutBack',
+                    delay: index * 100
+                });
 
-                // 【優化 3】進場動畫：由小變大的彈跳效果 (Pop-up)
-                // 等待下一幀確保元素已渲染
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        img.setAttribute("scale", "0 0 0");
-                        const popDelay = index * 150;
-                        img.setAttribute(
-                            "animation__pop",
-                            `property=scale; to=0.8 0.8 0.8; dur=800; easing=easeOutQuad; delay=${popDelay}`
-                        );
+                // 【有趣效果 2】持續上下飄浮
+                img.setAttribute("animation__float", {
+                    property: 'position',
+                    to: `${x} ${y + 0.2} ${z}`,
+                    dir: 'alternate',
+                    loop: true,
+                    dur: 2000 + Math.random() * 1000,
+                    easing: 'easeInOutSine'
+                });
+
+                // 【有趣效果 3】點擊旋轉互動
+                img.addEventListener('click', function() {
+                    this.setAttribute('animation__click', {
+                        property: 'rotation',
+                        from: '-90 0 0',
+                        to: '-90 360 0',
+                        dur: 800,
+                        easing: 'easeInOutQuad'
                     });
                 });
 
-                // 【優化 4】持續動畫：微小的上下飄浮感，讓畫面變生動
-                const floatY = y + 0.2;
-                const floatDuration = 2000 + Math.random() * 1000;
-                img.setAttribute(
-                    "animation__float",
-                    `property=position; to=${x} ${floatY} ${z}; dir=alternate; loop=true; dur=${floatDuration}; easing=easeInOutSine`
-                );
-
-                // 【優化 5】點擊互動：觸碰圖片會旋轉一圈
-                img.addEventListener('click', function () {
-                    // 避免重複觸發，先移除舊動畫
-                    this.removeAttribute('animation__click'); 
-                    this.setAttribute(
-                        'animation__click',
-                        'property=rotation; from=-90 0 0; to=-90 360 0; dur=800; easing=easeInOutQuad'
-                    );
-                });
-            });
-        }
-
-        // 讓掃描到的物件在畫面中「保留，不會因為 marker 消失就一起消失」
-        function setupMarkerPersistence() {
-            const marker = document.getElementById("animated-marker");
-            if (!marker) return;
-
-            let hasBeenSeen = false;
-
-            // 第一次偵測到 marker
-            marker.addEventListener("markerFound", function () {
-                hasBeenSeen = true;
-            });
-
-            // 當 AR.js 判定 marker 消失時，強制把內容保持顯示
-            marker.addEventListener("markerLost", function () {
-                if (!hasBeenSeen) return;
-                // 保持最後一個姿態與位置，讓物件停留在畫面中
-                marker.object3D.visible = true;
+                marker.appendChild(img);
             });
         }
 
@@ -370,32 +331,34 @@
             });
         }
 
-        // 等待 A-Frame 準備完成後進行注入與綁定
+        // 等待 A-Frame 場景完全準備完成後進行注入與綁定
+        // 使用 A-Frame 的 'loaded' 事件確保 AR.js 已初始化，避免影響掃描追蹤
         const scene = document.querySelector("a-scene");
         
         if (scene && scene.hasLoaded) {
-            // 如果 scene 已經載入
+            // 如果場景已經加載，直接執行
             injectImagesIntoMarker();
-            setupMarkerPersistence();
             setupCapture();
         } else {
-            // 等待 scene 載入完成
+            // 等待場景加載完成
             scene.addEventListener("loaded", function () {
-                injectImagesIntoMarker();
-                setupMarkerPersistence();
-                setupCapture();
+                // 額外延遲確保 AR.js 追蹤系統已啟動
+                setTimeout(function () {
+                    injectImagesIntoMarker();
+                    setupCapture();
+                }, 500);
             });
         }
         
-        // 備用方案：如果上述方法都失敗，使用 window load
+        // 備用方案：如果場景事件未觸發，使用 window load
         window.addEventListener("load", function () {
-            setTimeout(() => {
-                const marker = document.getElementById("animated-marker");
-                if (marker && marker.children.length === 0) {
-                    console.log("備用方案：重新注入圖片");
+            const marker = document.getElementById("animated-marker");
+            if (marker && marker.children.length === 0) {
+                // 如果圖片尚未注入，再次嘗試
+                setTimeout(function () {
                     injectImagesIntoMarker();
-                }
-            }, 1000);
+                }, 1000);
+            }
         });
     </script>
 </body>

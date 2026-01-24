@@ -943,7 +943,7 @@
             <img src="1x/p (5).png" alt="" class="header-corner-image header-corner-left">
             <img src="1x/p (4).png" alt="" class="header-corner-image header-corner-right">
             <img src="1x/p (6).png" alt="" class="header-image">
-            <div class="decorative-title">Web AR 猜燈謎體驗</div>
+            <div class="decorative-title">Web AR 體驗</div>
             <div class="slogan">探索數位奇蹟 · 光躍虛實之間</div>
         </header>
 
@@ -1240,17 +1240,9 @@
                 }, { passive: false });
 
                 mapModalImg.addEventListener("touchend", (e) => {
+                    // 結束拖曳或縮放時只重置狀態，不在地圖上關閉視窗
                     if (e.touches.length === 0) {
                         isPanning = false;
-
-                        // 單指輕點（沒有明顯移動）關閉地圖
-                        if (!tapMoved && mapModal.classList.contains("open")) {
-                            mapModal.classList.remove("open");
-                            mapScale = 1;
-                            translateX = 0;
-                            translateY = 0;
-                            applyMapTransform();
-                        }
                     }
 
                     if (e.touches.length < 2) {

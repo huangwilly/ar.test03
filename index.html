@@ -8,234 +8,827 @@
     <style>
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             margin: 0;
             min-height: 100vh;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
-            color: #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
+            font-family: "Microsoft JhengHei", "PingFang TC", "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(180deg, #ffb84d 0%, #ff8c42 25%, #ff6b35 50%, #ff4757 75%, #c44569 100%);
+            color: #fff;
+            position: relative;
+            overflow-x: hidden;
+            padding: 0;
         }
 
-        .shell {
-            width: 100%;
-            max-width: 960px;
-            background: rgba(15, 23, 42, 0.92);
-            border-radius: 24px;
-            box-shadow:
-                0 24px 60px rgba(0, 0, 0, 0.75),
-                0 0 0 1px rgba(148, 163, 184, 0.12);
-            padding: 24px;
-            backdrop-filter: blur(18px);
+        /* 背景同心圓效果 */
+        .bg-circles {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.1);
         }
 
-        .title-block h1 {
-            margin: 0;
-            font-size: 1.6rem;
-            letter-spacing: 0.03em;
+        .circle-1 {
+            width: 800px;
+            height: 800px;
+            top: -200px;
+            right: -200px;
+            animation: pulse 8s ease-in-out infinite;
         }
 
-        .title-block p {
-            margin: 4px 0 0;
-            font-size: 0.9rem;
-            color: #9ca3af;
+        .circle-2 {
+            width: 600px;
+            height: 600px;
+            top: -100px;
+            right: -100px;
+            animation: pulse 10s ease-in-out infinite 1s;
         }
 
-        .badge {
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #22c55e, #14b8a6);
-            font-size: 0.72rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: #022c22;
+        .circle-3 {
+            width: 400px;
+            height: 400px;
+            top: 0;
+            right: 0;
+            animation: pulse 12s ease-in-out infinite 2s;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-            gap: 20px;
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.5; }
         }
 
-        .modes {
+        /* 背景裝飾圖片 - 使用 1x 資料夾 */
+        .bg-decoration {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .bg-img {
+            position: absolute;
+            object-fit: contain;
+            opacity: 0.25;
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+            animation: float 25s infinite ease-in-out;
+        }
+
+        .bg-img:nth-child(2) {
+            top: 8%;
+            left: 3%;
+            width: 180px;
+            height: 180px;
+            animation-delay: 0s;
+        }
+
+        .bg-img:nth-child(1) {
+            top: 12%;
+            right: 8%;
+            width: 150px;
+            height: 150px;
+            animation-delay: 3s;
+        }
+
+        .bg-img:nth-child(3) {
+            top: 10%;
+            right: 5%;
+            width: 480px;
+            height: 480px;
+            animation-delay: 6s;
+        }
+
+        .bg-img:nth-child(4) {
+            bottom: 15%;
+            right: 12%;
+            width: 170px;
+            height: 170px;
+            animation-delay: 9s;
+        }
+
+        .bg-img:nth-child(5) {
+            top: 45%;
+            right: 5%;
+            width: 140px;
+            height: 140px;
+            animation-delay: 1.5s;
+        }
+
+        .bg-img:nth-child(6) {
+            top: 35%;
+            left: 8%;
+            width: 160px;
+            height: 160px;
+            animation-delay: 4.5s;
+        }
+
+        .bg-img:nth-child(7) {
+            bottom: 35%;
+            left: 18%;
+            width: 130px;
+            height: 130px;
+            animation-delay: 7.5s;
+        }
+
+        .bg-img:nth-child(8) {
+            top: 55%;
+            right: 22%;
+            width: 150px;
+            height: 150px;
+            animation-delay: 10.5s;
+        }
+
+        .bg-img:nth-child(9) {
+            top: 20%;
+            left: 25%;
+            width: 140px;
+            height: 140px;
+            animation-delay: 2s;
+        }
+
+        .bg-img:nth-child(10) {
+            bottom: 45%;
+            right: 30%;
+            width: 120px;
+            height: 120px;
+            animation-delay: 5.5s;
+        }
+
+        .bg-img:nth-child(11) {
+            top: 65%;
+            right: 18%;
+            width: 160px;
+            height: 160px;
+            animation-delay: 8s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            25% {
+                transform: translate(15px, -15px) rotate(3deg) scale(1.05);
+            }
+            50% {
+                transform: translate(-10px, 10px) rotate(-3deg) scale(0.95);
+            }
+            75% {
+                transform: translate(8px, 8px) rotate(2deg) scale(1.02);
+            }
+        }
+
+        /* 煙花效果 */
+        .fireworks {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        .firework {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            animation: explode 4s infinite;
+        }
+
+        .firework:nth-child(1) {
+            top: 12%;
+            left: 18%;
+            animation-delay: 0s;
+        }
+
+        .firework:nth-child(2) {
+            top: 25%;
+            right: 22%;
+            animation-delay: 1.2s;
+        }
+
+        .firework:nth-child(3) {
+            bottom: 18%;
+            left: 28%;
+            animation-delay: 2.4s;
+        }
+
+        .firework:nth-child(4) {
+            bottom: 28%;
+            right: 18%;
+            animation-delay: 1.8s;
+        }
+
+        .firework:nth-child(5) {
+            top: 40%;
+            left: 8%;
+            animation-delay: 3s;
+        }
+
+        .firework:nth-child(6) {
+            top: 50%;
+            right: 12%;
+            animation-delay: 0.6s;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.9),
+                            0 0 0 0 rgba(255, 215, 0, 0.6),
+                            0 0 0 0 rgba(255, 165, 0, 0.4);
+            }
+            30% {
+                transform: scale(2.5);
+                opacity: 0.9;
+                box-shadow: 0 0 15px 8px rgba(255, 255, 255, 0.7),
+                            0 0 30px 15px rgba(255, 215, 0, 0.5),
+                            0 0 50px 25px rgba(255, 165, 0, 0.3);
+            }
+            60% {
+                transform: scale(4);
+                opacity: 0.6;
+                box-shadow: 0 0 25px 12px rgba(255, 255, 255, 0.5),
+                            0 0 50px 25px rgba(255, 215, 0, 0.4),
+                            0 0 80px 40px rgba(255, 165, 0, 0.2);
+            }
+            100% {
+                transform: scale(6);
+                opacity: 0;
+                box-shadow: 0 0 40px 20px rgba(255, 255, 255, 0.3),
+                            0 0 80px 40px rgba(255, 215, 0, 0.2),
+                            0 0 120px 60px rgba(255, 165, 0, 0.1);
+            }
+        }
+
+        /* 主容器 */
+        .container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 頂部標題區 */
+        .header-section {
+            text-align: center;
+            padding: 30px 20px 20px;
+            position: relative;
+        }
+
+        .header-image {
+            max-width: 300px;
+            width: 100%;
+            height: auto;
+            margin: 0 auto 20px;
+            display: block;
+            filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+            animation: headerFloat 6s ease-in-out infinite;
+        }
+
+        .header-corner-image {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 120px;
+            height: auto;
+            opacity: 0.9;
+            filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.2));
+            animation: cornerFloat 5s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes headerFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes cornerFloat {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-8px) rotate(3deg);
+            }
+        }
+
+        .year-badge {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #87ceeb;
+            text-shadow: 0 2px 10px rgba(135, 206, 235, 0.5);
+            margin-bottom: 8px;
+            letter-spacing: 0.1em;
+        }
+
+        .main-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #87ceeb;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 8px rgba(135, 206, 235, 0.4);
+        }
+
+        .sub-title {
+            font-size: 1.2rem;
+            color: #4a90e2;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .decorative-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #2c3e50;
+            margin: 20px 0 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            letter-spacing: 0.1em;
+        }
+
+        .slogan {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 內容區域 */
+        .content-section {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 24px;
+            margin-top: 20px;
+            flex: 1;
+        }
+
+        /* 按鈕區域 */
+        .modes-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .mode-button {
             border: none;
-            border-radius: 16px;
-            padding: 14px 16px;
+            border-radius: 20px;
+            padding: 20px 22px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 16px;
             cursor: pointer;
-            background: rgba(15, 23, 42, 0.85);
-            color: inherit;
-            transition:
-                background 0.2s ease,
-                transform 0.12s ease,
-                box-shadow 0.12s ease;
-        }
-
-        .mode-button:hover {
-            background: rgba(30, 64, 175, 0.85);
-            transform: translateY(-1px);
-            box-shadow: 0 12px 30px rgba(30, 64, 175, 0.55);
-        }
-
-        .mode-button.active {
-            background: linear-gradient(135deg, #3b82f6, #06b6d4);
-            color: #eff6ff;
-            box-shadow: 0 12px 36px rgba(37, 99, 235, 0.7);
-        }
-
-        .mode-main {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
-            text-align: left;
-        }
-
-        .mode-title {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        .mode-sub {
-            font-size: 0.8rem;
-            color: #cbd5f5;
-        }
-
-        .mode-pill {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 999px;
-            border: 1px solid rgba(191, 219, 254, 0.5);
-            background: rgba(15, 23, 42, 0.6);
-        }
-
-        .panel {
-            border-radius: 18px;
-            background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.32), transparent 55%),
-                        radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.32), transparent 55%),
-                        rgba(15, 23, 42, 0.88);
-            padding: 16px 18px 16px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #2c3e50;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             position: relative;
             overflow: hidden;
         }
 
-        .panel h2 {
-            margin: 0 0 6px;
-            font-size: 1.1rem;
+        .mode-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
         }
 
-        .panel p {
-            margin: 4px 0;
+        .mode-button:hover::before {
+            left: 100%;
+        }
+
+        .mode-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.4);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .mode-button.active {
+            background: linear-gradient(135deg, #ff6b35, #ff8c42);
+            color: #fff;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .mode-button.active::before {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        }
+
+        .mode-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            text-align: left;
+            flex: 1;
+        }
+
+        .mode-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+
+        .mode-sub {
             font-size: 0.9rem;
-            color: #d1d5db;
+            opacity: 0.85;
+            line-height: 1.4;
         }
 
-        .panel ul {
-            margin: 10px 0 0;
-            padding-left: 18px;
-            font-size: 0.85rem;
-            color: #cbd5f5;
+        .mode-button.active .mode-sub {
+            opacity: 0.95;
         }
 
-        .panel ul li {
-            margin-top: 4px;
+        .mode-pill {
+            font-size: 0.8rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            background: rgba(255, 248, 240, 0.9);
+            color: #c44569;
+            font-weight: 600;
+            white-space: nowrap;
         }
 
-        .cta-row {
+        .mode-button.active .mode-pill {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: #fff;
+        }
+
+        /* 詳細資訊面板 */
+        .info-panel {
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 32px 28px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(255, 107, 53, 0.2);
+        }
+
+        .info-panel::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 140, 66, 0.08) 0%, transparent 70%);
+            animation: rotate 25s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .panel-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #c44569;
+            margin-bottom: 16px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-text {
+            font-size: 1rem;
+            color: #2c3e50;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .panel-list {
+            margin: 16px 0 0;
+            padding-left: 24px;
+            font-size: 0.95rem;
+            color: #34495e;
+            line-height: 1.8;
+        }
+
+        .panel-list li {
+            margin-top: 8px;
+        }
+
+        .cta-section {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
-            margin-top: 14px;
+            margin-top: 24px;
         }
 
         .start-button {
             border: none;
-            padding: 11px 22px;
-            border-radius: 999px;
-            font-size: 0.95rem;
-            font-weight: 600;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
             cursor: pointer;
-            color: #0b1120;
-            background: linear-gradient(135deg, #22c55e, #a3e635);
-            box-shadow:
-                0 14px 35px rgba(34, 197, 94, 0.4),
-                0 0 0 1px rgba(190, 242, 100, 0.7);
+            color: #fff;
+            background: linear-gradient(135deg, #ff6b35, #ff8c42, #c44569);
+            box-shadow: 0 8px 28px rgba(255, 107, 53, 0.5),
+                        0 0 0 3px rgba(255, 255, 255, 0.3);
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-        }
-
-        .start-button span {
-            display: inline-block;
+            gap: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
         }
 
         .start-button:hover {
-            transform: translateY(-1px);
-            box-shadow:
-                0 18px 45px rgba(34, 197, 94, 0.55),
-                0 0 0 1px rgba(190, 242, 100, 0.9);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 40px rgba(255, 107, 53, 0.7),
+                        0 0 0 4px rgba(255, 255, 255, 0.5);
         }
 
-        .note {
-            font-size: 0.75rem;
-            color: #9ca3af;
+        .note-text {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-weight: 500;
         }
 
-        @media (max-width: 720px) {
-            .shell {
-                padding: 18px;
-                border-radius: 18px;
+        /* 底部資訊區 */
+        .footer-info {
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .footer-text {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 968px) {
+            .content-section {
+                grid-template-columns: 1fr;
+                gap: 20px;
             }
 
-            .grid {
-                grid-template-columns: minmax(0, 1fr);
+            .header-section {
+                padding: 25px 15px 15px;
             }
 
-            .cta-row {
+            .header-image {
+                max-width: 250px;
+            }
+
+            .decorative-title {
+                font-size: 2.2rem;
+                margin: 18px 0 8px;
+            }
+
+            .slogan {
+                font-size: 1.4rem;
+                margin-bottom: 25px;
+            }
+
+            .bg-img:nth-child(3) {
+                width: 300px;
+                height: 300px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                padding: 12px;
+                min-height: auto;
+            }
+
+            .header-section {
+                padding: 15px 10px 10px;
+                margin-bottom: 10px;
+            }
+
+            .header-image {
+                max-width: 200px;
+                margin-bottom: 12px;
+            }
+
+            .header-corner-image {
+                width: 60px !important;
+                top: 5px;
+                right: 5px;
+            }
+
+            .decorative-title {
+                font-size: 1.5rem;
+                margin: 12px 0 6px;
+                letter-spacing: 0.05em;
+            }
+
+            .slogan {
+                font-size: 1rem;
+                margin-bottom: 15px;
+                line-height: 1.4;
+            }
+
+            .content-section {
+                gap: 16px;
+                margin-top: 10px;
+            }
+
+            .modes-section {
+                gap: 10px;
+            }
+
+            .mode-button {
+                padding: 14px 16px;
+                border-radius: 16px;
+                flex-wrap: wrap;
+            }
+
+            .mode-content {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .mode-title {
+                font-size: 0.95rem;
+                margin-bottom: 2px;
+            }
+
+            .mode-sub {
+                font-size: 0.8rem;
+                line-height: 1.3;
+            }
+
+            .mode-pill {
+                font-size: 0.7rem;
+                padding: 4px 10px;
+                margin-top: 4px;
+                align-self: flex-start;
+            }
+
+            .info-panel {
+                padding: 20px 16px;
+                border-radius: 20px;
+                border-width: 2px;
+            }
+
+            .panel-title {
+                font-size: 1.3rem;
+                margin-bottom: 12px;
+            }
+
+            .panel-text {
+                font-size: 0.9rem;
+                line-height: 1.6;
+                margin-bottom: 10px;
+            }
+
+            .panel-list {
+                margin: 12px 0 0;
+                padding-left: 20px;
+                font-size: 0.85rem;
+                line-height: 1.6;
+            }
+
+            .panel-list li {
+                margin-top: 6px;
+            }
+
+            .cta-section {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
+                gap: 10px;
+                margin-top: 18px;
+            }
+
+            .start-button {
+                padding: 14px 24px;
+                font-size: 1rem;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .note-text {
+                font-size: 0.75rem;
+                text-align: center;
+            }
+
+            .footer-info {
+                padding: 15px;
+                margin-top: 20px;
+                border-radius: 12px;
+            }
+
+            .footer-text {
+                font-size: 0.85rem;
+            }
+
+            .bg-img {
+                width: 80px !important;
+                height: 80px !important;
+                opacity: 0.35 !important;
+            }
+
+            .bg-img:nth-child(3) {
+                width: 240px !important;
+                height: 240px !important;
+                top: 8% !important;
+                right: 3% !important;
+                left: auto !important;
+                bottom: auto !important;
+                opacity: 0.4 !important;
+            }
+
+            .circle-1,
+            .circle-2,
+            .circle-3 {
+                display: none;
             }
         }
     </style>
 </head>
 <body>
-    <main class="shell">
-        <header class="header">
-            <div class="title-block">
-                <h1>Web AR 沉浸式體驗</h1>
-                <p>先了解玩法與亮點，再進入相機啟動的 AR 體驗頁。</p>
-            </div>
-            <div class="badge">Camera Off · Safe View</div>
+    <!-- 背景同心圓 -->
+    <div class="bg-circles">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+    </div>
+
+    <!-- 背景裝飾圖片 -->
+    <div class="bg-decoration">
+        <img src="1x/p (1).png" alt="" class="bg-img">
+        <img src="1x/p (2).png" alt="" class="bg-img">
+        <img src="1x/p (3).png" alt="" class="bg-img">
+        <img src="1x/p (4).png" alt="" class="bg-img">
+        <img src="1x/p (7).png" alt="" class="bg-img">
+        <img src="1x/p (8).png" alt="" class="bg-img">
+        <img src="1x/p (7).png" alt="" class="bg-img">
+        <img src="1x/p (8).png" alt="" class="bg-img">
+        <img src="1x/p (7).png" alt="" class="bg-img">
+        <img src="1x/p (8).png" alt="" class="bg-img">
+        <img src="1x/p (7).png" alt="" class="bg-img">
+    </div>
+
+    <!-- 煙花效果 -->
+    <div class="fireworks">
+        <div class="firework"></div>
+        <div class="firework"></div>
+        <div class="firework"></div>
+        <div class="firework"></div>
+        <div class="firework"></div>
+        <div class="firework"></div>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 頂部標題區 -->
+        <header class="header-section">
+            <img src="1x/p (5).png" alt="" class="header-corner-image">
+            <img src="1x/p (6).png" alt="" class="header-image">
+            <div class="decorative-title">Web AR 沉浸式體驗</div>
+            <div class="slogan">探索數位奇蹟 · 光躍虛實之間</div>
         </header>
 
-        <section class="grid">
-            <div class="modes">
+        <!-- 內容區域 -->
+        <section class="content-section">
+            <!-- 按鈕區域 -->
+            <div class="modes-section">
                 <button class="mode-button active" data-mode="immersive">
-                    <div class="mode-main">
+                    <div class="mode-content">
                         <div class="mode-title">沉浸 Immersive</div>
                         <div class="mode-sub">空間感強烈，彷彿把實體模型放在桌面上。</div>
                     </div>
@@ -243,7 +836,7 @@
                 </button>
 
                 <button class="mode-button" data-mode="easy">
-                    <div class="mode-main">
+                    <div class="mode-content">
                         <div class="mode-title">易用 Easy</div>
                         <div class="mode-sub">點擊、拖曳、縮放都直覺，無需學習成本。</div>
                     </div>
@@ -251,7 +844,7 @@
                 </button>
 
                 <button class="mode-button" data-mode="beautiful">
-                    <div class="mode-main">
+                    <div class="mode-content">
                         <div class="mode-title">精美 Aesthetic</div>
                         <div class="mode-sub">高品質模型與光影，呈現細節與質感。</div>
                     </div>
@@ -259,28 +852,32 @@
                 </button>
             </div>
 
-            <article class="panel" id="mode-panel">
-                <h2>沉浸模式 · Immersive</h2>
-                <p>透過 Marker 追蹤與 3D 場景配置，讓虛擬模型實際「站在」你的桌面或書本上。</p>
-                <ul>
-                    <li>支援旋轉與縮放手勢，從任何角度觀察細節。</li>
-                    <li>結合實際環境光源，呈現更自然的立體感。</li>
-                    <li>適合展示產品 Demo、展覽導覽或課堂互動。</li>
-                </ul>
-                <div class="cta-row">
-                    <button
-                        class="start-button"
-                        type="button"
-                        onclick="window.location.href='experience.html'"
-                    >
-                        <span>開始體驗</span>
-                        <span>→</span>
-                    </button>
-                    <p class="note">點擊後才會啟動相機並進入 AR 模組。</p>
+            <!-- 詳細資訊面板 -->
+            <article class="info-panel">
+                <div class="panel-content" id="mode-panel">
+                    <h2 class="panel-title">沉浸模式 · Immersive</h2>
+                    <p class="panel-text">透過 Marker 追蹤與 3D 場景配置，讓虛擬模型實際「站在」你的桌面或書本上。</p>
+                    <ul class="panel-list">
+                        <li>支援旋轉與縮放手勢，從任何角度觀察細節。</li>
+                        <li>結合實際環境光源，呈現更自然的立體感。</li>
+                        <li>適合展示產品 Demo、展覽導覽或課堂互動。</li>
+                    </ul>
+                    <div class="cta-section">
+                        <button class="start-button" type="button" onclick="window.location.href='experience.html'">
+                            <span>開始體驗</span>
+                            <span>→</span>
+                        </button>
+                        <p class="note-text">點擊後才會啟動相機並進入 AR 模組。</p>
+                    </div>
                 </div>
             </article>
         </section>
-    </main>
+
+        <!-- 底部資訊 -->
+        <footer class="footer-info">
+            <p class="footer-text">準備好體驗 Web AR 的無限可能了嗎？</p>
+        </footer>
+    </div>
 
     <script>
         (function () {
@@ -324,57 +921,37 @@
             };
 
             const panel = document.getElementById("mode-panel");
-            const buttons = Array.from(
-                document.querySelectorAll(".mode-button")
-            );
+            const buttons = Array.from(document.querySelectorAll(".mode-button"));
 
             function render(modeKey) {
                 const data = content[modeKey];
                 if (!data || !panel) return;
 
-                panel.innerHTML = "";
+                const titleEl = panel.querySelector(".panel-title");
+                const textEls = panel.querySelectorAll(".panel-text");
+                const listEl = panel.querySelector(".panel-list");
 
-                const h2 = document.createElement("h2");
-                h2.textContent = data.title;
-                panel.appendChild(h2);
+                // 更新標題
+                if (titleEl) {
+                    titleEl.textContent = data.title;
+                }
 
-                data.body.forEach((t) => {
-                    const p = document.createElement("p");
-                    p.textContent = t;
-                    panel.appendChild(p);
+                // 更新正文
+                textEls.forEach((el, index) => {
+                    if (data.body[index]) {
+                        el.textContent = data.body[index];
+                    }
                 });
 
-                const ul = document.createElement("ul");
-                data.bullets.forEach((b) => {
-                    const li = document.createElement("li");
-                    li.textContent = b;
-                    ul.appendChild(li);
-                });
-                panel.appendChild(ul);
-
-                const ctaRow = document.createElement("div");
-                ctaRow.className = "cta-row";
-
-                const btn = document.createElement("button");
-                btn.className = "start-button";
-                btn.type = "button";
-                btn.onclick = function () {
-                    window.location.href = "experience.html";
-                };
-                const span1 = document.createElement("span");
-                span1.textContent = "開始體驗";
-                const span2 = document.createElement("span");
-                span2.textContent = "→";
-                btn.appendChild(span1);
-                btn.appendChild(span2);
-
-                const note = document.createElement("p");
-                note.className = "note";
-                note.textContent = "點擊後才會啟動相機並進入 AR 模組。";
-
-                ctaRow.appendChild(btn);
-                ctaRow.appendChild(note);
-                panel.appendChild(ctaRow);
+                // 更新列表
+                if (listEl) {
+                    listEl.innerHTML = "";
+                    data.bullets.forEach((bullet) => {
+                        const li = document.createElement("li");
+                        li.textContent = bullet;
+                        listEl.appendChild(li);
+                    });
+                }
             }
 
             buttons.forEach((btn) => {

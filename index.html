@@ -83,6 +83,12 @@
             animation: float 25s infinite ease-in-out;
         }
 
+        /* 桌機版：前兩張背景圖 (p1, p2) 稍微提高透明度，讓圖更清楚 */
+        .bg-img:nth-child(1),
+        .bg-img:nth-child(2) {
+            opacity: 0.5;
+        }
+
         .bg-img:nth-child(2) {
             top: 8%;
             left: 3%;
@@ -169,6 +175,15 @@
             width: 160px;
             height: 160px;
             animation-delay: 8s;
+        }
+
+        /* 左上角額外一個會動的透明 p(7) 背景 */
+        .bg-corner-p7 {
+            top: 6%;
+            left: 4%;
+            width: 140px;
+            height: 140px;
+            opacity: 0.3;
         }
 
         @keyframes float {
@@ -303,14 +318,22 @@
 
         .header-corner-image {
             position: absolute;
-            top: 10px;
-            right: 10px;
             width: 120px;
             height: auto;
             opacity: 0.9;
             filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.2));
-            animation: cornerFloat 5s ease-in-out infinite;
             z-index: 1;
+        }
+
+        .header-corner-left {
+            top: 10px;
+            left: 10px;
+        }
+
+        .header-corner-right {
+            top: 10px;
+            right: 10px;
+            animation: cornerFloat 5s ease-in-out infinite;
         }
 
         @keyframes headerFloat {
@@ -593,6 +616,79 @@
             font-weight: 500;
         }
 
+        /* 地圖預覽與放大檢視 */
+        .map-preview {
+            margin-top: 18px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 140, 66, 0.35);
+            background: rgba(255, 248, 240, 0.9);
+            cursor: pointer;
+            display: none; /* 預設隱藏，僅在地圖模式顯示 */
+        }
+
+        .map-preview-image {
+            width: 100%;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .map-preview:hover .map-preview-image {
+            transform: scale(1.02);
+        }
+
+        .map-preview-label {
+            padding: 8px 12px 10px;
+            font-size: 0.85rem;
+            color: #c44569;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .map-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .map-modal.open {
+            display: flex;
+        }
+
+        .map-modal-content {
+            max-width: 95vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+            background: #ffffff;
+        }
+
+        .map-modal-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            touch-action: none; /* 讓自訂觸控事件可以正常運作 */
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+        }
+
+        .map-modal-hint {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #333;
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.04);
+            padding: 6px 12px;
+            border-radius: 999px;
+        }
+
         /* 響應式設計 */
         @media (max-width: 968px) {
             .content-section {
@@ -646,6 +742,14 @@
 
             .header-corner-image {
                 width: 60px !important;
+            }
+
+            .header-corner-left {
+                top: 5px;
+                left: 5px;
+            }
+
+            .header-corner-right {
                 top: 5px;
                 right: 5px;
             }
@@ -757,9 +861,26 @@
             }
 
             .bg-img {
-                width: 80px !important;
-                height: 80px !important;
+                width: 96px !important;
+                height: 96px !important;
                 opacity: 0.35 !important;
+            }
+
+            /* 手機版：p1, p2 再清楚一點，提高透明度 */
+            .bg-img:nth-child(1),
+            .bg-img:nth-child(2) {
+                opacity: 0.55 !important;
+            }
+
+            /* 手機版：前兩張背景圖（p1, p2）稍微往中央靠近 */
+            .bg-img:nth-child(1) {
+                top: 10% !important;
+                right: 10% !important;
+            }
+
+            .bg-img:nth-child(2) {
+                top: 15% !important;
+                left: 12% !important;
             }
 
             .bg-img:nth-child(3) {
@@ -801,6 +922,8 @@
         <img src="1x/p (7).png" alt="" class="bg-img">
         <img src="1x/p (8).png" alt="" class="bg-img">
         <img src="1x/p (7).png" alt="" class="bg-img">
+        <!-- 左上角額外一個會動的透明 p(7) -->
+        <img src="1x/p (7).png" alt="" class="bg-img bg-corner-p7">
     </div>
 
     <!-- 煙花效果 -->
@@ -817,9 +940,10 @@
     <div class="container">
         <!-- 頂部標題區 -->
         <header class="header-section">
-            <img src="1x/p (5).png" alt="" class="header-corner-image">
+            <img src="1x/p (5).png" alt="" class="header-corner-image header-corner-left">
+            <img src="1x/p (4).png" alt="" class="header-corner-image header-corner-right">
             <img src="1x/p (6).png" alt="" class="header-image">
-            <div class="decorative-title">Web AR 沉浸式體驗</div>
+            <div class="decorative-title">Web AR 猜燈謎體驗</div>
             <div class="slogan">探索數位奇蹟 · 光躍虛實之間</div>
         </header>
 
@@ -827,28 +951,28 @@
         <section class="content-section">
             <!-- 按鈕區域 -->
             <div class="modes-section">
-                <button class="mode-button active" data-mode="immersive">
+                <button class="mode-button active" data-mode="easy">
                     <div class="mode-content">
-                        <div class="mode-title">沉浸 Immersive</div>
-                        <div class="mode-sub">空間感強烈，彷彿把實體模型放在桌面上。</div>
-                    </div>
-                    <div class="mode-pill">空間臨場感</div>
-                </button>
-
-                <button class="mode-button" data-mode="easy">
-                    <div class="mode-content">
-                        <div class="mode-title">易用 Easy</div>
-                        <div class="mode-sub">點擊、拖曳、縮放都直覺，無需學習成本。</div>
+                        <div class="mode-title">全區地圖資訊 MAP</div>
+                        <div class="mode-sub">點選地圖可放大查看細節與資訊。</div>
                     </div>
                     <div class="mode-pill">一指就上手</div>
                 </button>
 
+                <button class="mode-button" data-mode="immersive">
+                    <div class="mode-content">
+                        <div class="mode-title">作品導覽及介紹</div>
+                        <div class="mode-sub">待補充作品資訊</div>
+                    </div>
+                    <div class="mode-pill">空間臨場感</div>
+                </button>
+
                 <button class="mode-button" data-mode="beautiful">
                     <div class="mode-content">
-                        <div class="mode-title">精美 Aesthetic</div>
-                        <div class="mode-sub">高品質模型與光影，呈現細節與質感。</div>
+                        <div class="mode-title">光城幻域 · 風吹小石花</div>
+                        <div class="mode-sub">探索數位奇蹟 · 光躍虛實之間</div>
                     </div>
-                    <div class="mode-pill">畫質與細節</div>
+                    <div class="mode-pill">AR體驗</div>
                 </button>
             </div>
 
@@ -862,6 +986,10 @@
                         <li>結合實際環境光源，呈現更自然的立體感。</li>
                         <li>適合展示產品 Demo、展覽導覽或課堂互動。</li>
                     </ul>
+                    <div class="map-preview" id="map-preview">
+                        <img src="map1.png" alt="全區導覽地圖" class="map-preview-image">
+                        <div class="map-preview-label">點選地圖可放大觀看詳細資訊</div>
+                    </div>
                     <div class="cta-section">
                         <button class="start-button" type="button" onclick="window.location.href='experience.html'">
                             <span>開始體驗</span>
@@ -879,35 +1007,33 @@
         </footer>
     </div>
 
+    <!-- 地圖放大檢視 -->
+    <div class="map-modal" id="map-modal">
+        <div class="map-modal-content">
+            <img src="map1.png" alt="全區導覽地圖放大檢視" class="map-modal-img" id="map-modal-img">
+        </div>
+        <div class="map-modal-hint">點一下任意位置關閉地圖</div>
+    </div>
+
     <script>
         (function () {
             const content = {
                 immersive: {
-                    title: "沉浸模式 · Immersive",
+                    title: "作品導覽及介紹",
                     body: [
-                        "透過 Marker 追蹤與 3D 場景配置，讓虛擬模型實際「站在」你的桌面或書本上。",
-                        "最適合導覽、展覽或教學情境，讓使用者在真實環境中感受數位內容。"
+                        "查看作品配置與路線規劃。"
                     ],
-                    bullets: [
-                        "支援旋轉與縮放手勢，從任何角度觀察細節。",
-                        "結合實際環境光源，呈現更自然的立體感。",
-                        "適合展示產品 Demo、展覽導覽或課堂互動。"
-                    ]
+                    bullets: []
                 },
                 easy: {
-                    title: "易用模式 · Easy",
+                    title: "全區地圖資訊 · MAP",
                     body: [
-                        "操作邏輯貼近一般手機手勢，無論大人小孩都能快速上手。",
-                        "只需對準 Marker，即可立即看到內容，無需額外安裝 App。"
+                        "顯示全區平面地圖，查看各展區位置與資訊。"
                     ],
-                    bullets: [
-                        "單指拖曳旋轉，雙指即可縮放模型大小。",
-                        "介面簡潔，只有關鍵按鈕與引導提示。",
-                        "支援跨平台瀏覽器，手機、平板皆可體驗。"
-                    ]
+                    bullets: []
                 },
                 beautiful: {
-                    title: "精美模式 · Aesthetic",
+                    title: "光城幻域 · 風吹小石花",
                     body: [
                         "採用高品質材質與光影設定，突顯模型細節與質感。",
                         "即使在一般照明環境，也能保有清晰銳利的輪廓。"
@@ -922,6 +1048,26 @@
 
             const panel = document.getElementById("mode-panel");
             const buttons = Array.from(document.querySelectorAll(".mode-button"));
+            const mapPreview = document.getElementById("map-preview");
+            const mapModal = document.getElementById("map-modal");
+            const mapModalImg = document.getElementById("map-modal-img");
+
+            let mapScale = 1;
+            let startScale = 1;
+            let startDistance = 0;
+            const MIN_SCALE = 1;
+            const MAX_SCALE = 4;
+
+            function getTouchDistance(touches) {
+                const dx = touches[0].clientX - touches[1].clientX;
+                const dy = touches[0].clientY - touches[1].clientY;
+                return Math.hypot(dx, dy);
+            }
+
+            function applyMapScale() {
+                if (!mapModalImg) return;
+                mapModalImg.style.transform = `scale(${mapScale})`;
+            }
 
             function render(modeKey) {
                 const data = content[modeKey];
@@ -952,6 +1098,42 @@
                         listEl.appendChild(li);
                     });
                 }
+
+                // 地圖預覽顯示與切換圖檔
+                if (mapPreview) {
+                    const mapImg = mapPreview.querySelector("img");
+                    const mapLabel = mapPreview.querySelector(".map-preview-label");
+
+                    if (modeKey === "easy") {
+                        mapPreview.style.display = "block";
+                        if (mapImg) {
+                            mapImg.src = "map1.png";
+                            mapImg.alt = "全區導覽地圖";
+                        }
+                        if (mapLabel) {
+                            mapLabel.textContent = "點選地圖可放大觀看詳細資訊";
+                        }
+                        if (mapModalImg) {
+                            mapModalImg.src = "map1.png";
+                            mapModalImg.alt = "全區導覽地圖放大檢視";
+                        }
+                    } else if (modeKey === "immersive") {
+                        mapPreview.style.display = "block";
+                        if (mapImg) {
+                            mapImg.src = "map2.png";
+                            mapImg.alt = "作品導覽地圖";
+                        }
+                        if (mapLabel) {
+                            mapLabel.textContent = "點選地圖可放大觀看作品導覽資訊";
+                        }
+                        if (mapModalImg) {
+                            mapModalImg.src = "map2.png";
+                            mapModalImg.alt = "作品導覽地圖放大檢視";
+                        }
+                    } else {
+                        mapPreview.style.display = "none";
+                    }
+                }
             }
 
             buttons.forEach((btn) => {
@@ -963,8 +1145,50 @@
                 });
             });
 
-            // 初始化
-            render("immersive");
+            // 初始化：預設顯示全區地圖資訊
+            render("easy");
+
+            // 地圖放大與關閉 + 雙指縮放
+            if (mapPreview && mapModal && mapModalImg) {
+                mapPreview.addEventListener("click", () => {
+                    mapScale = 1;
+                    applyMapScale();
+                    mapModal.classList.add("open");
+                });
+
+                mapModal.addEventListener("click", () => {
+                    mapModal.classList.remove("open");
+                    mapScale = 1;
+                    applyMapScale();
+                });
+
+                mapModalImg.addEventListener("touchstart", (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault();
+                        startDistance = getTouchDistance(e.touches);
+                        startScale = mapScale;
+                    }
+                }, { passive: false });
+
+                mapModalImg.addEventListener("touchmove", (e) => {
+                    if (e.touches.length === 2) {
+                        e.preventDefault();
+                        const currentDistance = getTouchDistance(e.touches);
+                        if (startDistance > 0) {
+                            const scaleChange = currentDistance / startDistance;
+                            mapScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScale * scaleChange));
+                            applyMapScale();
+                        }
+                    }
+                }, { passive: false });
+
+                mapModalImg.addEventListener("touchend", (e) => {
+                    if (e.touches.length < 2) {
+                        startDistance = 0;
+                        startScale = mapScale;
+                    }
+                });
+            }
         })();
     </script>
 </body>

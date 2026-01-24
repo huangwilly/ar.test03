@@ -1055,6 +1055,14 @@
             let mapScale = 1;
             let startScale = 1;
             let startDistance = 0;
+            let translateX = 0;
+            let translateY = 0;
+            let lastPanX = 0;
+            let lastPanY = 0;
+            let isPanning = false;
+            let tapStartX = 0;
+            let tapStartY = 0;
+            let tapMoved = false;
             const MIN_SCALE = 1;
             const MAX_SCALE = 4;
 
@@ -1064,9 +1072,26 @@
                 return Math.hypot(dx, dy);
             }
 
-            function applyMapScale() {
+            function clampTransform() {
                 if (!mapModalImg) return;
-                mapModalImg.style.transform = `scale(${mapScale})`;
+                const imgWidth = mapModalImg.clientWidth;
+                const imgHeight = mapModalImg.clientHeight;
+                const maxX = (imgWidth * (mapScale - 1)) / 2;
+                const maxY = (imgHeight * (mapScale - 1)) / 2;
+
+                if (mapScale <= 1) {
+                    translateX = 0;
+                    translateY = 0;
+                } else {
+                    translateX = Math.max(-maxX, Math.min(maxX, translateX));
+                    translateY = Math.max(-maxY, Math.min(maxY, translateY));
+                }
+            }
+
+            function applyMapTransform() {
+                if (!mapModalImg) return;
+                clampTransform();
+                mapModalImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${mapScale})`;
             }
 
             function render(modeKey) {
@@ -1152,37 +1177,82 @@
             if (mapPreview && mapModal && mapModalImg) {
                 mapPreview.addEventListener("click", () => {
                     mapScale = 1;
-                    applyMapScale();
+                    translateX = 0;
+                    translateY = 0;
+                    applyMapTransform();
                     mapModal.classList.add("open");
                 });
 
-                mapModal.addEventListener("click", () => {
+                // 點背景關閉；避免拖曳地圖也觸發關閉
+                mapModal.addEventListener("click", (e) => {
+                    if (e.target !== mapModal) return;
                     mapModal.classList.remove("open");
                     mapScale = 1;
-                    applyMapScale();
+                    translateX = 0;
+                    translateY = 0;
+                    applyMapTransform();
                 });
 
                 mapModalImg.addEventListener("touchstart", (e) => {
-                    if (e.touches.length === 2) {
+                    if (e.touches.length === 1) {
+                        // 單指拖曳
+                        isPanning = true;
+                        lastPanX = e.touches[0].clientX;
+                        lastPanY = e.touches[0].clientY;
+                        tapStartX = lastPanX;
+                        tapStartY = lastPanY;
+                        tapMoved = false;
+                    } else if (e.touches.length === 2) {
+                        // 雙指縮放
                         e.preventDefault();
                         startDistance = getTouchDistance(e.touches);
                         startScale = mapScale;
+                        isPanning = false;
                     }
                 }, { passive: false });
 
                 mapModalImg.addEventListener("touchmove", (e) => {
-                    if (e.touches.length === 2) {
+                    if (e.touches.length === 1 && isPanning && mapScale > 1) {
+                        e.preventDefault();
+                        const currentX = e.touches[0].clientX;
+                        const currentY = e.touches[0].clientY;
+                        const dx = currentX - lastPanX;
+                        const dy = currentY - lastPanY;
+                        translateX += dx;
+                        translateY += dy;
+                        lastPanX = currentX;
+                        lastPanY = currentY;
+
+                        if (Math.hypot(currentX - tapStartX, currentY - tapStartY) > 8) {
+                            tapMoved = true;
+                        }
+
+                        applyMapTransform();
+                    } else if (e.touches.length === 2) {
                         e.preventDefault();
                         const currentDistance = getTouchDistance(e.touches);
                         if (startDistance > 0) {
                             const scaleChange = currentDistance / startDistance;
                             mapScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScale * scaleChange));
-                            applyMapScale();
+                            applyMapTransform();
                         }
                     }
                 }, { passive: false });
 
                 mapModalImg.addEventListener("touchend", (e) => {
+                    if (e.touches.length === 0) {
+                        isPanning = false;
+
+                        // 單指輕點（沒有明顯移動）關閉地圖
+                        if (!tapMoved && mapModal.classList.contains("open")) {
+                            mapModal.classList.remove("open");
+                            mapScale = 1;
+                            translateX = 0;
+                            translateY = 0;
+                            applyMapTransform();
+                        }
+                    }
+
                     if (e.touches.length < 2) {
                         startDistance = 0;
                         startScale = mapScale;

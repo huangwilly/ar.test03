@@ -23,6 +23,19 @@
             padding: 0;
         }
 
+        .background-container {
+            background-image: url('p015.png');
+            background-size: cover; /* 確保圖片填滿螢幕 */
+            background-position: center; /* 保持發光中心點在中間 */
+            background-repeat: no-repeat;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+
         /* 背景同心圓效果 */
         .bg-circles {
             position: fixed;
@@ -36,6 +49,8 @@
             position: absolute;
             border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.1);
+            will-change: transform, opacity;
+            transform: translate3d(0, 0, 0);
         }
 
         .circle-1 {
@@ -63,8 +78,8 @@
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.3; }
-            50% { transform: scale(1.1); opacity: 0.5; }
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.3; }
+            50% { transform: translate3d(0, 0, 0) scale(1.1); opacity: 0.5; }
         }
 
         /* 背景裝飾圖片 - 使用 1x 資料夾 */
@@ -79,8 +94,9 @@
             position: absolute;
             object-fit: contain;
             opacity: 0.25;
-            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+            will-change: transform, opacity;
             animation: float 25s infinite ease-in-out;
+            transform: translate3d(0, 0, 0);
         }
 
         /* 桌機版：前兩張背景圖 (p1, p2) 稍微提高透明度，讓圖更清楚 */
@@ -188,20 +204,20 @@
 
         @keyframes float {
             0%, 100% {
-                transform: translate(0, 0) rotate(0deg) scale(1);
+                transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
             }
             25% {
-                transform: translate(15px, -15px) rotate(3deg) scale(1.05);
+                transform: translate3d(15px, -15px, 0) rotate(3deg) scale(1.05);
             }
             50% {
-                transform: translate(-10px, 10px) rotate(-3deg) scale(0.95);
+                transform: translate3d(-10px, 10px, 0) rotate(-3deg) scale(0.95);
             }
             75% {
-                transform: translate(8px, 8px) rotate(2deg) scale(1.02);
+                transform: translate3d(8px, 8px, 0) rotate(2deg) scale(1.02);
             }
         }
 
-        /* 煙花效果 */
+        /* 煙花效果 - 優化版：使用圖片替代 box-shadow */
         .fireworks {
             position: fixed;
             inset: 0;
@@ -212,12 +228,15 @@
 
         .firework {
             position: absolute;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            width: 40px;
+            height: 40px;
+            background-image: url('1x/p (07).png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            will-change: transform, opacity;
             animation: explode 4s infinite;
+            transform: translate3d(0, 0, 0);
         }
 
         .firework:nth-child(1) {
@@ -258,32 +277,24 @@
 
         @keyframes explode {
             0% {
-                transform: scale(1);
+                transform: translate3d(0, 0, 0) scale(0.3);
+                opacity: 0;
+            }
+            10% {
+                transform: translate3d(0, 0, 0) scale(0.8);
                 opacity: 1;
-                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.9),
-                            0 0 0 0 rgba(255, 215, 0, 0.6),
-                            0 0 0 0 rgba(255, 165, 0, 0.4);
             }
             30% {
-                transform: scale(2.5);
+                transform: translate3d(0, 0, 0) scale(1.5);
                 opacity: 0.9;
-                box-shadow: 0 0 15px 8px rgba(255, 255, 255, 0.7),
-                            0 0 30px 15px rgba(255, 215, 0, 0.5),
-                            0 0 50px 25px rgba(255, 165, 0, 0.3);
             }
             60% {
-                transform: scale(4);
-                opacity: 0.6;
-                box-shadow: 0 0 25px 12px rgba(255, 255, 255, 0.5),
-                            0 0 50px 25px rgba(255, 215, 0, 0.4),
-                            0 0 80px 40px rgba(255, 165, 0, 0.2);
+                transform: translate3d(0, 0, 0) scale(2.5);
+                opacity: 0.5;
             }
             100% {
-                transform: scale(6);
+                transform: translate3d(0, 0, 0) scale(4);
                 opacity: 0;
-                box-shadow: 0 0 40px 20px rgba(255, 255, 255, 0.3),
-                            0 0 80px 40px rgba(255, 215, 0, 0.2),
-                            0 0 120px 60px rgba(255, 165, 0, 0.1);
             }
         }
 
@@ -312,8 +323,9 @@
             height: auto;
             margin: 40px auto 40px;
             display: block;
-            filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+            will-change: transform;
             animation: headerFloat 6s ease-in-out infinite;
+            transform: translate3d(0, 0, 0);
         }
 
         .header-corner-image {
@@ -321,7 +333,6 @@
             width: 120px;
             height: auto;
             opacity: 0.9;
-            filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.2));
             z-index: 1;
         }
 
@@ -333,24 +344,26 @@
         .header-corner-right {
             top: 10px;
             right: 10px;
+            will-change: transform;
             animation: cornerFloat 5s ease-in-out infinite;
+            transform: translate3d(0, 0, 0);
         }
 
         @keyframes headerFloat {
             0%, 100% {
-                transform: translateY(0);
+                transform: translate3d(0, 0, 0);
             }
             50% {
-                transform: translateY(-10px);
+                transform: translate3d(0, -10px, 0);
             }
         }
 
         @keyframes cornerFloat {
             0%, 100% {
-                transform: translateY(0) rotate(0deg);
+                transform: translate3d(0, 0, 0) rotate(0deg);
             }
             50% {
-                transform: translateY(-8px) rotate(3deg);
+                transform: translate3d(0, -8px, 0) rotate(3deg);
             }
         }
 
@@ -426,6 +439,8 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             position: relative;
             overflow: hidden;
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
         }
 
         .mode-button::before {
@@ -444,7 +459,7 @@
         }
 
         .mode-button:hover {
-            transform: translateY(-3px);
+            transform: translate3d(0, -3px, 0);
             box-shadow: 0 8px 30px rgba(255, 107, 53, 0.4);
             background: rgba(255, 255, 255, 1);
         }
@@ -453,7 +468,7 @@
             background: linear-gradient(135deg, #ff6b35, #ff8c42);
             color: #fff;
             box-shadow: 0 8px 32px rgba(255, 107, 53, 0.6);
-            transform: translateY(-2px);
+            transform: translate3d(0, -2px, 0);
         }
 
         .mode-button.active::before {
@@ -521,12 +536,14 @@
             width: 200%;
             height: 200%;
             background: radial-gradient(circle, rgba(255, 140, 66, 0.08) 0%, transparent 70%);
+            will-change: transform;
             animation: rotate 25s linear infinite;
+            transform: translate3d(0, 0, 0);
         }
 
         @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from { transform: translate3d(0, 0, 0) rotate(0deg); }
+            to { transform: translate3d(0, 0, 0) rotate(360deg); }
         }
 
         .panel-content {
@@ -586,10 +603,12 @@
             transition: all 0.3s ease;
             position: relative;
             z-index: 1;
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
         }
 
         .start-button:hover {
-            transform: translateY(-3px) scale(1.05);
+            transform: translate3d(0, -3px, 0) scale(1.05);
             box-shadow: 0 12px 40px rgba(255, 107, 53, 0.7),
                         0 0 0 4px rgba(255, 255, 255, 0.5);
         }
@@ -872,14 +891,29 @@
                 opacity: 0.55 !important;
             }
 
+            /* 手機版：減少背景圖片數量以提升效能 */
+            .bg-img:nth-child(n+7) {
+                display: none;
+            }
+
+            /* 手機版：減少煙火數量 */
+            .firework:nth-child(n+4) {
+                display: none;
+            }
+
+            /* 手機版：隱藏同心圓動畫 */
+            .bg-circles {
+                display: none;
+            }
+
             /* 手機版：前兩張背景圖（p1, p2）稍微往中央靠近 */
             .bg-img:nth-child(1) {
-                top: 10% !important;
+                top: 5% !important;
                 right: 10% !important;
             }
 
             .bg-img:nth-child(2) {
-                top: 15% !important;
+                top: 25% !important;
                 left: 12% !important;
             }
 
@@ -902,6 +936,9 @@
     </style>
 </head>
 <body>
+    <!-- 背景圖片容器 -->
+    <div class="background-container"></div>
+    
     <!-- 背景同心圓 -->
     <div class="bg-circles">
         <div class="circle circle-1"></div>
@@ -926,7 +963,7 @@
         <img src="1x/p (7).png" alt="" class="bg-img bg-corner-p7">
     </div>
 
-    <!-- 煙花效果 -->
+    <!-- 煙花效果 - 優化版：使用圖片 -->
     <div class="fireworks">
         <div class="firework"></div>
         <div class="firework"></div>

@@ -617,7 +617,7 @@
                 return;
             }
 
-            const images = pickRandomImages(IMAGE_CONFIG.images, 10);
+            const images = pickRandomImages(IMAGE_CONFIG.images, 5);
             const existingPositions = [];
 
             images.forEach((src, index) => {
@@ -633,7 +633,7 @@
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
                 img.setAttribute("rotation", "-90 0 0");
-                img.setAttribute("scale", "0.7 0.7 0.7");
+                img.setAttribute("scale", "1.4 1.4 1.4");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
                 // 移除透明外框：設置材質屬性

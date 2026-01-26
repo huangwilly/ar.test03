@@ -247,7 +247,6 @@
                 padding: 12px 20px;
             }
         }
-
         .btn-close {
             background: rgba(71, 85, 105, 0.9);
             color: #e5e7eb;
@@ -615,7 +614,48 @@
         let imageTimer = null;
         const DISPLAY_DURATION = 2 * 60 * 1000; // 2 分鐘（毫秒）
 
-        // 顯示所有圖片
+        const worldPosTemp = typeof AFRAME !== "undefined" && AFRAME.THREE
+            ? new AFRAME.THREE.Vector3()
+            : null;
+
+        // 掃到 marker 時：將圖片從 marker 移到 scene，這樣 marker 消失後圖片仍可顯示 2 分鐘
+        function moveImagesToScene() {
+            const marker = document.getElementById("animated-marker");
+            if (!marker || !marker.sceneEl || !worldPosTemp || !ImageAnimationSystem.images.length) return;
+            const sceneEl = marker.sceneEl;
+            ImageAnimationSystem.images.forEach(function (imageData) {
+                const el = imageData.entity;
+                if (!el || !el.object3D || el.parentNode !== marker) return;
+                el.object3D.getWorldPosition(worldPosTemp);
+                marker.removeChild(el);
+                sceneEl.appendChild(el);
+                el.setAttribute("position", { x: worldPosTemp.x, y: worldPosTemp.y, z: worldPosTemp.z });
+                imageData.position.x = worldPosTemp.x;
+                imageData.position.y = worldPosTemp.y;
+                imageData.position.z = worldPosTemp.z;
+            });
+        }
+
+        // 2 分鐘到或要收起來時：把圖片移回 marker 並隱藏，下次掃描才能再觸發
+        function moveImagesBackToMarker() {
+            const marker = document.getElementById("animated-marker");
+            if (!marker || !ImageAnimationSystem.images.length) return;
+            ImageAnimationSystem.images.forEach(function (imageData) {
+                const el = imageData.entity;
+                const init = imageData.initialLocalPosition;
+                if (!el || !el.object3D || !init) return;
+                if (el.parentNode && el.parentNode.removeChild) el.parentNode.removeChild(el);
+                marker.appendChild(el);
+                el.setAttribute("position", { x: init.x, y: init.y, z: init.z });
+                imageData.position.x = init.x;
+                imageData.position.y = init.y;
+                imageData.position.z = init.z;
+                el.object3D.visible = false;
+            });
+            ImageAnimationSystem.stop();
+        }
+
+        // 顯示所有圖片（僅控制顯示＋動畫；若圖片還在 marker 上會先由 startImageTimer 移出）
         function showAllImages() {
             ImageAnimationSystem.images.forEach(imageData => {
                 if (imageData.entity && imageData.entity.object3D) {
@@ -625,28 +665,28 @@
             ImageAnimationSystem.start();
         }
 
-        // 隱藏所有圖片
+        // 隱藏所有圖片：移回 marker 並隱藏
         function hideAllImages() {
-            ImageAnimationSystem.images.forEach(imageData => {
-                if (imageData.entity && imageData.entity.object3D) {
-                    imageData.entity.object3D.visible = false;
-                }
-            });
-            ImageAnimationSystem.stop();
+            moveImagesBackToMarker();
         }
 
         // 啟動 2 分鐘計時器
         function startImageTimer() {
-            // 清除舊的計時器
             if (imageTimer) {
                 clearTimeout(imageTimer);
                 imageTimer = null;
             }
 
-            // 顯示圖片
+            const marker = document.getElementById("animated-marker");
+            const stillOnMarker = ImageAnimationSystem.images.length > 0 &&
+                ImageAnimationSystem.images[0].entity &&
+                ImageAnimationSystem.images[0].entity.parentNode === marker;
+            if (marker && stillOnMarker) {
+                moveImagesToScene();
+            }
+
             showAllImages();
 
-            // 設置 2 分鐘後隱藏
             imageTimer = setTimeout(() => {
                 hideAllImages();
                 imageTimer = null;
@@ -716,10 +756,11 @@
                     }, 100);
                 });
 
-                // 存儲圖片數據到動畫系統
+                // 存儲圖片數據到動畫系統（保留初始本地座標，供 re-parent 回 marker 時使用）
                 ImageAnimationSystem.images.push({
                     entity: img,
                     position: { ...position },
+                    initialLocalPosition: { x: position.x, y: position.y, z: position.z },
                     velocity: velocity
                 });
             });

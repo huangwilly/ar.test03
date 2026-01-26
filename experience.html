@@ -611,6 +611,48 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
+        // 2 分鐘計時器
+        let imageTimer = null;
+        const DISPLAY_DURATION = 2 * 60 * 1000; // 2 分鐘（毫秒）
+
+        // 顯示所有圖片
+        function showAllImages() {
+            ImageAnimationSystem.images.forEach(imageData => {
+                if (imageData.entity && imageData.entity.object3D) {
+                    imageData.entity.object3D.visible = true;
+                }
+            });
+            ImageAnimationSystem.start();
+        }
+
+        // 隱藏所有圖片
+        function hideAllImages() {
+            ImageAnimationSystem.images.forEach(imageData => {
+                if (imageData.entity && imageData.entity.object3D) {
+                    imageData.entity.object3D.visible = false;
+                }
+            });
+            ImageAnimationSystem.stop();
+        }
+
+        // 啟動 2 分鐘計時器
+        function startImageTimer() {
+            // 清除舊的計時器
+            if (imageTimer) {
+                clearTimeout(imageTimer);
+                imageTimer = null;
+            }
+
+            // 顯示圖片
+            showAllImages();
+
+            // 設置 2 分鐘後隱藏
+            imageTimer = setTimeout(() => {
+                hideAllImages();
+                imageTimer = null;
+            }, DISPLAY_DURATION);
+        }
+
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
@@ -641,6 +683,11 @@
 
                 marker.appendChild(img);
 
+                // 初始狀態：隱藏圖片
+                if (img.object3D) {
+                    img.object3D.visible = false;
+                }
+
                 // 圖片加載後移除透明外框
                 img.addEventListener("loaded", function() {
                     setTimeout(() => {
@@ -662,6 +709,10 @@
                             }
                             mesh.material.needsUpdate = true;
                         }
+                        // 確保初始狀態為隱藏
+                        if (img.object3D) {
+                            img.object3D.visible = false;
+                        }
                     }, 100);
                 });
 
@@ -673,29 +724,16 @@
                 });
             });
 
-            // 啟動動畫系統
-            ImageAnimationSystem.start();
+            // 使用 AR.js 正確的事件監聽 marker 檢測
+            marker.addEventListener("markerFound", function() {
+                // marker 被檢測到時，啟動 2 分鐘計時器並顯示圖片
+                startImageTimer();
+            });
 
-            // 監聽 marker 可見性，確保圖片持續顯示
-            let markerVisible = false;
-            const checkMarkerVisibility = () => {
-                const markerEl = document.getElementById("animated-marker");
-                if (markerEl && markerEl.object3D) {
-                    const wasVisible = markerVisible;
-                    markerVisible = markerEl.object3D.visible;
-
-                    // 當 marker 可見時，確保所有圖片都顯示
-                    if (markerVisible) {
-                        ImageAnimationSystem.images.forEach(imageData => {
-                            if (imageData.entity && imageData.entity.object3D) {
-                                imageData.entity.object3D.visible = true;
-                            }
-                        });
-                    }
-                }
-                requestAnimationFrame(checkMarkerVisibility);
-            };
-            checkMarkerVisibility();
+            marker.addEventListener("markerLost", function() {
+                // marker 丟失時不立即隱藏，等待計時器自然結束
+                // 這樣可以讓圖片在 marker 短暫丟失時仍然顯示
+            });
         }
 
         // 保存當前截圖的 blob 和 URL

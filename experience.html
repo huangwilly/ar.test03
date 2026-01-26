@@ -13,11 +13,18 @@
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
 
     <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
         body {
             margin: 0;
             overflow: hidden;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background-color: #000;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .hud {
@@ -27,96 +34,138 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 10px 12px;
+            padding: 8px 10px;
             z-index: 10;
         }
 
         .hud-top {
             display: flex;
             justify-content: flex-end;
-            gap: 8px;
+            gap: 6px;
         }
 
         .hud-bottom {
             display: flex;
             justify-content: center;
-            margin-bottom: 8px;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: nowrap;
+            width: 100%;
+            padding: 0 4px;
         }
 
         .hud button {
             pointer-events: auto;
             border: none;
-            border-radius: 999px;
-            padding: 10px 17px;
-            font-size: 1rem;
+            border-radius: 50px;
+            padding: 14px 16px;
+            font-size: 4.2vw;
             font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 7px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            justify-content: center;
+            gap: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            flex: 1;
+            min-height: 48px;
+            transition: all 0.15s ease;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
         }
 
         .btn-back {
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.92);
             color: #e5e7eb;
+            font-size: 3.8vw;
+            padding: 12px 18px;
+            flex: 0 0 auto;
+            min-width: auto;
         }
 
-        .btn-back:hover {
+        .btn-back:active {
             background: rgba(30, 64, 175, 0.95);
+            transform: scale(0.95);
+        }
+
+        .btn-location {
+            background: rgba(59, 130, 246, 0.92);
+            color: #f9fafb;
+        }
+
+        .btn-location:active {
+            background: rgba(37, 99, 235, 0.95);
+            transform: scale(0.95);
         }
 
         .btn-capture {
-            padding: 12px 29px;
+            padding: 16px 20px;
             background: radial-gradient(circle at 30% 0, #f97316, #ef4444);
             color: #f9fafb;
-            font-size: 1.1rem;
+            font-size: 4.8vw;
+            flex: 1.2;
         }
 
-        .btn-capture:hover {
-            box-shadow: 0 12px 32px rgba(248, 113, 113, 0.6);
+        .btn-capture:active {
+            box-shadow: 0 8px 20px rgba(248, 113, 113, 0.7);
+            transform: scale(0.95);
         }
 
-        .capture-preview {
-            position: fixed;
-            right: 10px;
-            bottom: 10px;
-            width: 90px;
-            height: 160px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(148, 163, 184, 0.8);
-            background: #020617;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-            z-index: 9;
+        .btn-riddle {
+            background: rgba(168, 85, 247, 0.92);
+            color: #f9fafb;
         }
 
-        .capture-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .btn-riddle:active {
+            background: rgba(147, 51, 234, 0.95);
+            transform: scale(0.95);
         }
 
-        .capture-preview span {
-            font-size: 0.7rem;
-            color: #9ca3af;
-            padding: 4px;
-            text-align: center;
+        /* 手機橫屏優化 */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .hud {
+                padding: 6px 8px;
+            }
+
+            .hud-bottom {
+                gap: 6px;
+                margin-bottom: 8px;
+            }
+
+            .hud button {
+                padding: 10px 14px;
+                font-size: 3.5vw;
+                min-height: 44px;
+            }
+
+            .btn-back {
+                font-size: 3.2vw;
+                padding: 10px 16px;
+            }
+
+            .btn-capture {
+                font-size: 4vw;
+                padding: 12px 18px;
+            }
         }
 
-        .capture-preview img {
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
+        /* 小屏幕手機優化 */
+        @media (max-width: 360px) {
+            .hud-bottom {
+                gap: 6px;
+            }
 
-        .capture-preview img:hover {
-            transform: scale(1.05);
+            .hud button {
+                padding: 12px 14px;
+                font-size: 3.8vw;
+            }
+
+            .btn-capture {
+                font-size: 4.5vw;
+            }
         }
 
         /* 預覽大圖模态框 */
@@ -129,6 +178,7 @@
             justify-content: center;
             z-index: 1000;
             pointer-events: auto;
+            padding: 10px;
         }
 
         .preview-modal.active {
@@ -137,17 +187,18 @@
 
         .preview-modal-content {
             position: relative;
-            max-width: 90vw;
-            max-height: 90vh;
+            max-width: 95vw;
+            max-height: 95vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
+            width: 100%;
         }
 
         .preview-modal img {
             max-width: 100%;
-            max-height: 80vh;
+            max-height: 75vh;
             object-fit: contain;
             border-radius: 8px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
@@ -155,18 +206,46 @@
 
         .preview-modal-actions {
             display: flex;
-            gap: 12px;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
         .preview-modal button {
             pointer-events: auto;
             border: none;
-            border-radius: 999px;
-            padding: 10px 20px;
-            font-size: 1rem;
+            border-radius: 50px;
+            padding: 14px 24px;
+            font-size: 4.5vw;
             font-weight: 600;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            min-height: 48px;
+            flex: 1;
+            min-width: 120px;
+            max-width: 200px;
+            transition: all 0.15s ease;
+            touch-action: manipulation;
+        }
+
+        .preview-modal button:active {
+            transform: scale(0.95);
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .preview-modal-content {
+                max-height: 90vh;
+            }
+
+            .preview-modal img {
+                max-height: 70vh;
+            }
+
+            .preview-modal button {
+                font-size: 3.5vw;
+                padding: 12px 20px;
+            }
         }
 
         .btn-close {
@@ -174,8 +253,9 @@
             color: #e5e7eb;
         }
 
-        .btn-close:hover {
+        .btn-close:active {
             background: rgba(100, 116, 139, 0.95);
+            transform: scale(0.95);
         }
 
         .btn-save {
@@ -183,8 +263,9 @@
             color: #f9fafb;
         }
 
-        .btn-save:hover {
+        .btn-save:active {
             box-shadow: 0 8px 24px rgba(248, 113, 113, 0.6);
+            transform: scale(0.95);
         }
 
         /* 強制畫布填滿，防止視角被拉伸 */
@@ -212,7 +293,7 @@
         embedded
         vr-mode-ui="enabled: false;"
         renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true; antialias: true;"
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; displayWidth: 1280; displayHeight: 720; canvasWidth: 1280; canvasHeight: 720;"
+        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
         id="scene"
         gesture-detector
     >
@@ -242,15 +323,16 @@
             </button>
         </div>
         <div class="hud-bottom">
+            <button id="location-btn" class="btn-location" type="button">
+                位置介紹
+            </button>
             <button id="capture-btn" class="btn-capture" type="button">
-                拍照存圖
+                拍照
+            </button>
+            <button id="riddle-btn" class="btn-riddle" type="button">
+                猜燈謎
             </button>
         </div>
-    </div>
-
-    <!-- 拍照預覽縮圖 -->
-    <div id="capture-preview" class="capture-preview">
-        <span>拍照後在此預覽</span>
     </div>
 
     <!-- 預覽大圖模态框 -->
@@ -505,7 +587,6 @@
         // 拍照功能：合併 video 與 scene canvas
         function setupCapture() {
             const btn = document.getElementById("capture-btn");
-            const preview = document.getElementById("capture-preview");
 
             if (!btn) return;
 
@@ -564,36 +645,14 @@
                                 currentCaptureBlob = blob;
                                 currentCaptureUrl = URL.createObjectURL(blob);
 
-                                // 更新預覽縮圖
-                                if (preview) {
-                                    preview.innerHTML = "";
-                                    const img = document.createElement("img");
-                                    img.src = currentCaptureUrl;
-                                    preview.appendChild(img);
-                                }
-
-                                // 觸發下載
-                                const a = document.createElement("a");
-                                a.href = currentCaptureUrl;
-                                a.download = "ar-capture-" + Date.now() + ".png";
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
+                                // 自動打開預覽模态框
+                                openPreviewModal();
                             },
                             "image/png"
                         );
                     });
                 });
             });
-
-            // 預覽縮圖點擊事件：打開大圖預覽
-            if (preview) {
-                preview.addEventListener("click", function (e) {
-                    if (currentCaptureUrl && e.target.tagName === "IMG") {
-                        openPreviewModal();
-                    }
-                });
-            }
         }
 
         // 打開預覽模态框
@@ -632,6 +691,30 @@
             }, 1000);
         }
 
+        // 設置位置介紹按鈕
+        function setupLocationButton() {
+            const locationBtn = document.getElementById("location-btn");
+            if (locationBtn) {
+                locationBtn.addEventListener("click", function () {
+                    // 這裡可以添加位置介紹的功能
+                    // 例如：顯示位置介紹的模态框或跳轉到相關頁面
+                    alert("位置介紹功能");
+                });
+            }
+        }
+
+        // 設置猜燈謎按鈕
+        function setupRiddleButton() {
+            const riddleBtn = document.getElementById("riddle-btn");
+            if (riddleBtn) {
+                riddleBtn.addEventListener("click", function () {
+                    // 這裡可以添加猜燈謎的功能
+                    // 例如：顯示猜燈謎的模态框或跳轉到相關頁面
+                    alert("猜燈謎功能");
+                });
+            }
+        }
+
         // 設置預覽模态框事件
         function setupPreviewModal() {
             const closeBtn = document.getElementById("preview-close-btn");
@@ -661,11 +744,15 @@
             if (document.readyState === "complete") {
                 injectImagesIntoMarker();
                 setupCapture();
+                setupLocationButton();
+                setupRiddleButton();
                 setupPreviewModal();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
                     injectImagesIntoMarker();
                     setupCapture();
+                    setupLocationButton();
+                    setupRiddleButton();
                     setupPreviewModal();
                 });
             }

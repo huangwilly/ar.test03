@@ -138,9 +138,6 @@
             <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
         </a-marker>
 
-        <!-- 圖片容器：用於存放已掃描的物件，使其持續顯示 -->
-        <a-entity id="persistent-objects-container"></a-entity>
-
         <a-entity camera></a-entity>
     </a-scene>
 
@@ -231,9 +228,9 @@
 
             // 更新圖片位置和處理邊界碰撞
             updateImage(imageData) {
-                const { entity, position, velocity, relativePosition } = imageData;
+                const { entity, position, velocity } = imageData;
 
-                // 更新相對位置（相對於 marker）
+                // 更新位置
                 position.x += velocity.x;
                 position.y += velocity.y;
                 position.z += velocity.z;
@@ -252,16 +249,9 @@
                     position.z = Math.max(this.boundary.minZ, Math.min(this.boundary.maxZ, position.z));
                 }
 
-                // 更新實體位置（世界座標 = marker 世界位置 + 相對位置）
+                // 更新實體位置
                 if (entity && entity.object3D) {
-                    // 使用 marker 的世界位置加上相對位置
-                    const worldX = markerWorldPosition.x + position.x;
-                    const worldY = markerWorldPosition.y + position.y;
-                    const worldZ = markerWorldPosition.z + position.z;
-                    entity.object3D.position.set(worldX, worldY, worldZ);
-                    
-                    // 確保物件始終可見
-                    entity.object3D.visible = true;
+                    entity.object3D.position.set(position.x, position.y, position.z);
                 }
             },
 
@@ -270,8 +260,7 @@
                 if (!this.isRunning) return;
 
                 this.images.forEach(imageData => {
-                    if (imageData.entity && imageData.entity.object3D) {
-                        // 始終更新物件位置，確保其可見
+                    if (imageData.entity && imageData.entity.object3D.visible) {
                         this.updateImage(imageData);
                     }
                 });
@@ -318,89 +307,21 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
-        // 記錄 marker 的位置和旋轉，用於定位物件
-        let markerWorldPosition = { x: 0, y: 0, z: 0 };
-        let markerWorldRotation = { x: 0, y: 0, z: 0 };
-        let markerDetected = false;
-        let objectsInitialized = false;
-
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
-            const container = document.getElementById("persistent-objects-container");
-            const scene = document.querySelector("a-scene");
-            
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
                 return;
             }
 
-            // 監聽 marker 的檢測事件
-            marker.addEventListener("markerFound", function() {
-                markerDetected = true;
-                updateMarkerWorldTransform();
-                
-                // 如果物件尚未初始化，則初始化它們
-                if (!objectsInitialized) {
-                    initializeObjects();
-                    objectsInitialized = true;
-                }
-            });
-
-            marker.addEventListener("markerLost", function() {
-                // marker 失去時，保持物件可見
-                // 不需要做任何事，因為物件已經在場景根級別
-            });
-
-            // 持續更新 marker 的世界座標（當 marker 可見時）
-            function updateMarkerWorldTransform() {
-                // 等待 A-Frame 和 THREE 準備好
-                if (typeof AFRAME === 'undefined' || !AFRAME.THREE) {
-                    requestAnimationFrame(updateMarkerWorldTransform);
-                    return;
-                }
-                
-                const THREE = AFRAME.THREE;
-                
-                if (marker && marker.object3D && marker.object3D.visible) {
-                    // 獲取 marker 的世界位置和旋轉
-                    const worldPos = new THREE.Vector3();
-                    const worldQuat = new THREE.Quaternion();
-                    marker.object3D.getWorldPosition(worldPos);
-                    marker.object3D.getWorldQuaternion(worldQuat);
-                    
-                    markerWorldPosition = {
-                        x: worldPos.x,
-                        y: worldPos.y,
-                        z: worldPos.z
-                    };
-                    
-                    // 將四元數轉換為歐拉角
-                    const euler = new THREE.Euler().setFromQuaternion(worldQuat);
-                    markerWorldRotation = {
-                        x: euler.x,
-                        y: euler.y,
-                        z: euler.z
-                    };
-                }
-                // 即使 marker 不可見，也繼續更新（使用最後記錄的位置）
-                requestAnimationFrame(updateMarkerWorldTransform);
-            }
-            // 延遲啟動，確保 A-Frame 已初始化
-            setTimeout(() => {
-                updateMarkerWorldTransform();
-            }, 100);
-        }
-
-        function initializeObjects() {
-            const container = document.getElementById("persistent-objects-container");
-            if (!container) return;
-
             const images = pickRandomImages(IMAGE_CONFIG.images, 10);
             const existingPositions = [];
+            const scene = document.querySelector("a-scene");
+            let objectsMovedToScene = false;
 
             images.forEach((src, index) => {
-                // 生成不重疊的隨機位置（相對於 marker）
-                const relativePosition = ImageAnimationSystem.generateRandomPosition(existingPositions);
-                existingPositions.push({ ...relativePosition });
+                // 生成不重疊的隨機位置
+                const position = ImageAnimationSystem.generateRandomPosition(existingPositions);
+                existingPositions.push({ ...position });
 
                 // 生成隨機速度
                 const velocity = ImageAnimationSystem.generateRandomVelocity();
@@ -408,17 +329,15 @@
                 // 創建圖片實體
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
-                // 初始位置設為相對於 marker 的位置
-                img.setAttribute("position", `${relativePosition.x} ${relativePosition.y} ${relativePosition.z}`);
+                img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
                 img.setAttribute("rotation", "-90 0 0");
                 img.setAttribute("scale", "0.7 0.7 0.7");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
                 // 移除透明外框：設置材質屬性
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
-                
-                // 將圖片添加到容器（場景根級別），而不是 marker
-                container.appendChild(img);
+
+                marker.appendChild(img);
 
                 // 圖片加載後移除透明外框
                 img.addEventListener("loaded", function() {
@@ -445,17 +364,101 @@
                 });
 
                 // 存儲圖片數據到動畫系統
-                // 注意：這裡存儲的是相對於 marker 的位置
                 ImageAnimationSystem.images.push({
                     entity: img,
-                    position: { ...relativePosition }, // 相對於 marker 的相對位置
-                    velocity: velocity,
-                    relativePosition: { ...relativePosition } // 保存相對位置用於計算世界位置
+                    position: { ...position },
+                    velocity: velocity
                 });
             });
 
             // 啟動動畫系統
             ImageAnimationSystem.start();
+
+            // 監聽 marker 可見性，確保圖片持續顯示
+            let markerVisible = false;
+            let markerWasVisible = false;
+            let markerFirstDetected = false;
+            const THREE = AFRAME.THREE;
+            
+            const checkMarkerVisibility = () => {
+                const markerEl = document.getElementById("animated-marker");
+                if (markerEl && markerEl.object3D) {
+                    markerWasVisible = markerVisible;
+                    markerVisible = markerEl.object3D.visible;
+
+                    if (markerVisible) {
+                        // marker 可見時，確保所有圖片都顯示
+                        ImageAnimationSystem.images.forEach(imageData => {
+                            if (imageData.entity && imageData.entity.object3D) {
+                                imageData.entity.object3D.visible = true;
+                            }
+                        });
+                        
+                        // 第一次檢測到 marker 時，將物件移到場景根級別以保持持續顯示
+                        if (!markerFirstDetected && THREE && !objectsMovedToScene) {
+                            ImageAnimationSystem.images.forEach(imageData => {
+                                const img = imageData.entity;
+                                if (img && img.object3D && img.parentElement === markerEl) {
+                                    // 獲取物件的世界位置、旋轉和縮放
+                                    const worldPos = new THREE.Vector3();
+                                    const worldQuat = new THREE.Quaternion();
+                                    const worldScale = new THREE.Vector3();
+                                    img.object3D.matrixWorld.decompose(worldPos, worldQuat, worldScale);
+                                    
+                                    // 將物件移到場景根級別
+                                    scene.appendChild(img);
+                                    
+                                    // 設置世界位置
+                                    img.object3D.position.copy(worldPos);
+                                    img.object3D.quaternion.copy(worldQuat);
+                                    img.object3D.scale.copy(worldScale);
+                                    
+                                    // 確保物件可見
+                                    img.object3D.visible = true;
+                                }
+                            });
+                            objectsMovedToScene = true;
+                            markerFirstDetected = true;
+                        } else if (markerFirstDetected && objectsMovedToScene && THREE) {
+                            // marker 可見且物件已在場景中，持續更新物件位置以匹配 marker
+                            ImageAnimationSystem.images.forEach(imageData => {
+                                const img = imageData.entity;
+                                if (img && img.object3D && img.parentElement === scene) {
+                                    // 計算物件相對於 marker 的世界位置
+                                    const localPos = new THREE.Vector3(
+                                        imageData.position.x,
+                                        imageData.position.y,
+                                        imageData.position.z
+                                    );
+                                    
+                                    // 獲取 marker 的世界變換
+                                    const markerWorldPos = new THREE.Vector3();
+                                    const markerWorldQuat = new THREE.Quaternion();
+                                    const markerWorldScale = new THREE.Vector3();
+                                    markerEl.object3D.matrixWorld.decompose(markerWorldPos, markerWorldQuat, markerWorldScale);
+                                    
+                                    // 將本地位置轉換為世界位置
+                                    const worldPos = localPos.clone().applyQuaternion(markerWorldQuat).add(markerWorldPos);
+                                    
+                                    // 更新物件位置
+                                    img.object3D.position.copy(worldPos);
+                                    img.object3D.quaternion.copy(markerWorldQuat);
+                                    img.object3D.visible = true;
+                                }
+                            });
+                        }
+                    } else if (!markerVisible && objectsMovedToScene) {
+                        // marker 不可見，但物件已在場景中，確保它們可見（使用最後的位置）
+                        ImageAnimationSystem.images.forEach(imageData => {
+                            if (imageData.entity && imageData.entity.object3D) {
+                                imageData.entity.object3D.visible = true;
+                            }
+                        });
+                    }
+                }
+                requestAnimationFrame(checkMarkerVisibility);
+            };
+            checkMarkerVisibility();
         }
 
         // 拍照功能：合併 video 與 scene canvas

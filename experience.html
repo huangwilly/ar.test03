@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Web AR 體驗</title>
 
-    <!-- A-Frame 與 AR.js 相關腳本：升級到最新版本並優化性能 -->
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <!-- A-Frame 與 AR.js 相關腳本：保留原始架構要求 -->
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
@@ -288,15 +288,14 @@
     </style>
 </head>
 <body>
-    <!-- AR 場景：優化渲染性能，使用最新 A-Frame 特性 -->
+    <!-- AR 場景：沿用原始架構，renderer 增加 preserveDrawingBuffer 以支援截圖 -->
     <a-scene
         embedded
         vr-mode-ui="enabled: false;"
-        renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true; antialias: true; colorManagement: true; sortObjects: true; physicallyCorrectLights: false;"
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; cameraParametersUrl: assets/camera_para.dat; maxDetectionRate: 60; canvasWidth: 640; canvasHeight: 480;"
+        renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true; antialias: true;"
+        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
         id="scene"
         gesture-detector
-        stats
     >
         <!-- 資產將由 JavaScript 依 JSON 動態注入，不再於此處直接配置 <a-asset-item> 模型 -->
         <a-assets id="dynamic-assets"></a-assets>
@@ -313,11 +312,7 @@
             <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
         </a-marker>
 
-        <a-entity 
-            camera 
-            look-controls="pointerLockEnabled: false;"
-            wasd-controls="enabled: false;"
-        ></a-entity>
+        <a-entity camera></a-entity>
     </a-scene>
 
     <!-- 介面 HUD：返回首頁與拍照按鈕 -->
@@ -371,7 +366,6 @@
             minDistance: 0.8, // 圖片之間的最小距離
             animationId: null,
             isRunning: false,
-            lastFrameTime: null, // 用於時間步長計算
 
             // 檢查位置是否與現有圖片重疊
             isPositionValid(newPos, existingPositions) {
@@ -422,7 +416,7 @@
             updateImage(imageData) {
                 const { entity, position, velocity } = imageData;
 
-                // 更新位置：保持原有速度系統，確保流暢度
+                // 更新位置
                 position.x += velocity.x;
                 position.y += velocity.y;
                 position.z += velocity.z;
@@ -441,31 +435,18 @@
                     position.z = Math.max(this.boundary.minZ, Math.min(this.boundary.maxZ, position.z));
                 }
 
-                // 更新實體位置：使用更高效的更新方式
-                if (entity && entity.object3D && entity.object3D.visible) {
-                    const obj3D = entity.object3D;
-                    // 直接設置位置，避免觸發額外的更新
-                    obj3D.position.x = position.x;
-                    obj3D.position.y = position.y;
-                    obj3D.position.z = position.z;
-                    // 標記需要更新矩陣
-                    obj3D.matrixWorldNeedsUpdate = true;
+                // 更新實體位置
+                if (entity && entity.object3D) {
+                    entity.object3D.position.set(position.x, position.y, position.z);
                 }
             },
 
-            // 動畫循環：優化性能，使用時間步長
+            // 動畫循環
             animate() {
                 if (!this.isRunning) return;
 
-                // 使用時間步長確保動畫流暢度
-                const now = performance.now();
-                if (!this.lastFrameTime) this.lastFrameTime = now;
-                const deltaTime = Math.min((now - this.lastFrameTime) / 16.67, 2); // 限制最大 deltaTime
-                this.lastFrameTime = now;
-
-                // 批量更新，減少 DOM 操作
                 this.images.forEach(imageData => {
-                    if (imageData.entity && imageData.entity.object3D && imageData.entity.object3D.visible) {
+                    if (imageData.entity && imageData.entity.object3D.visible) {
                         this.updateImage(imageData);
                     }
                 });
@@ -477,7 +458,6 @@
             start() {
                 if (this.isRunning) return;
                 this.isRunning = true;
-                this.lastFrameTime = null;
                 this.animate();
             },
 
@@ -530,7 +510,7 @@
                 // 生成隨機速度
                 const velocity = ImageAnimationSystem.generateRandomVelocity();
 
-                // 創建圖片實體：優化材質設置
+                // 創建圖片實體
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
@@ -538,44 +518,33 @@
                 img.setAttribute("scale", "0.7 0.7 0.7");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
-                // 優化材質：減少透明處理，提升性能
-                img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.1; depthWrite: true; depthTest: true;");
-                // 添加幾何體優化
-                img.setAttribute("geometry", "primitive: plane; width: 1; height: 1;");
+                // 移除透明外框：設置材質屬性
+                img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
 
                 marker.appendChild(img);
 
-                // 圖片加載後優化材質：減少重繪
+                // 圖片加載後移除透明外框
                 img.addEventListener("loaded", function() {
-                    requestAnimationFrame(() => {
+                    setTimeout(() => {
                         const mesh = img.object3D.children[0];
                         if (mesh && mesh.material) {
-                            const material = mesh.material;
-                            // 優化材質設置
-                            material.transparent = false;
-                            material.opacity = 1;
-                            material.alphaTest = 0.05; // 更低的 alphaTest 以移除透明邊緣
-                            material.depthWrite = true;
-                            material.depthTest = true;
+                            // 確保材質不透明且無邊框
+                            mesh.material.transparent = false;
+                            mesh.material.opacity = 1;
+                            mesh.material.alphaTest = 0.1; // 降低 alphaTest 值以移除透明邊緣
+                            mesh.material.depthWrite = true;
                             // 使用 A-Frame 的 THREE 引用
                             const THREE = AFRAME.THREE;
                             if (THREE) {
-                                material.side = THREE.DoubleSide;
+                                mesh.material.side = THREE.DoubleSide;
                             }
-                            // 優化紋理設置
-                            if (material.map) {
-                                material.map.flipY = false;
-                                material.map.generateMipmaps = true;
-                                material.map.minFilter = THREE.LinearMipmapLinearFilter;
-                                material.map.magFilter = THREE.LinearFilter;
+                            // 移除任何可能導致邊框的屬性
+                            if (mesh.material.map) {
+                                mesh.material.map.flipY = false;
                             }
-                            // 標記需要更新，但避免重複更新
-                            if (!material._optimized) {
-                                material.needsUpdate = true;
-                                material._optimized = true;
-                            }
+                            mesh.material.needsUpdate = true;
                         }
-                    });
+                    }, 100);
                 });
 
                 // 存儲圖片數據到動畫系統
@@ -589,26 +558,16 @@
             // 啟動動畫系統
             ImageAnimationSystem.start();
 
-            // 監聽 marker 可見性：優化性能，減少不必要的檢查
+            // 監聽 marker 可見性，確保圖片持續顯示
             let markerVisible = false;
-            let lastCheckTime = 0;
-            const CHECK_INTERVAL = 100; // 每 100ms 檢查一次，而非每幀
-
             const checkMarkerVisibility = () => {
-                const now = performance.now();
-                if (now - lastCheckTime < CHECK_INTERVAL) {
-                    requestAnimationFrame(checkMarkerVisibility);
-                    return;
-                }
-                lastCheckTime = now;
-
                 const markerEl = document.getElementById("animated-marker");
                 if (markerEl && markerEl.object3D) {
                     const wasVisible = markerVisible;
                     markerVisible = markerEl.object3D.visible;
 
-                    // 只在狀態改變時更新
-                    if (markerVisible && !wasVisible) {
+                    // 當 marker 可見時，確保所有圖片都顯示
+                    if (markerVisible) {
                         ImageAnimationSystem.images.forEach(imageData => {
                             if (imageData.entity && imageData.entity.object3D) {
                                 imageData.entity.object3D.visible = true;
@@ -643,12 +602,7 @@
                     return;
                 }
 
-                        // 等待渲染完成：使用更可靠的方式
-                const scene = sceneEl;
-                if (scene && scene.renderer) {
-                    scene.renderer.render(scene.object3D, scene.camera);
-                }
-                
+                // 等待下一帧確保 AR 內容已渲染完成
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         const width = video.videoWidth || sceneCanvas.width;

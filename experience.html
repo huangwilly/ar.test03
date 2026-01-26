@@ -110,6 +110,83 @@
             text-align: center;
         }
 
+        .capture-preview img {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .capture-preview img:hover {
+            transform: scale(1.05);
+        }
+
+        /* 預覽大圖模态框 */
+        .preview-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+
+        .preview-modal.active {
+            display: flex;
+        }
+
+        .preview-modal-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .preview-modal img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+        }
+
+        .preview-modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .preview-modal button {
+            pointer-events: auto;
+            border: none;
+            border-radius: 999px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-close {
+            background: rgba(71, 85, 105, 0.9);
+            color: #e5e7eb;
+        }
+
+        .btn-close:hover {
+            background: rgba(100, 116, 139, 0.95);
+        }
+
+        .btn-save {
+            background: radial-gradient(circle at 30% 0, #f97316, #ef4444);
+            color: #f9fafb;
+        }
+
+        .btn-save:hover {
+            box-shadow: 0 8px 24px rgba(248, 113, 113, 0.6);
+        }
+
         /* 強制畫布填滿，防止視角被拉伸 */
         .a-canvas {
             width: 100% !important;
@@ -174,6 +251,17 @@
     <!-- 拍照預覽縮圖 -->
     <div id="capture-preview" class="capture-preview">
         <span>拍照後在此預覽</span>
+    </div>
+
+    <!-- 預覽大圖模态框 -->
+    <div id="preview-modal" class="preview-modal">
+        <div class="preview-modal-content">
+            <img id="preview-modal-img" src="" alt="預覽圖片">
+            <div class="preview-modal-actions">
+                <button id="preview-close-btn" class="btn-close">關閉</button>
+                <button id="preview-save-btn" class="btn-save">儲存圖片</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -410,6 +498,10 @@
             checkMarkerVisibility();
         }
 
+        // 保存當前截圖的 blob 和 URL
+        let currentCaptureBlob = null;
+        let currentCaptureUrl = null;
+
         // 拍照功能：合併 video 與 scene canvas
         function setupCapture() {
             const btn = document.getElementById("capture-btn");
@@ -463,34 +555,105 @@
                             function (blob) {
                                 if (!blob) return;
 
-                                const url = URL.createObjectURL(blob);
+                                // 釋放舊的 URL
+                                if (currentCaptureUrl) {
+                                    URL.revokeObjectURL(currentCaptureUrl);
+                                }
+
+                                // 保存新的 blob 和 URL
+                                currentCaptureBlob = blob;
+                                currentCaptureUrl = URL.createObjectURL(blob);
 
                                 // 更新預覽縮圖
                                 if (preview) {
                                     preview.innerHTML = "";
                                     const img = document.createElement("img");
-                                    img.src = url;
+                                    img.src = currentCaptureUrl;
                                     preview.appendChild(img);
                                 }
 
                                 // 觸發下載
                                 const a = document.createElement("a");
-                                a.href = url;
+                                a.href = currentCaptureUrl;
                                 a.download = "ar-capture-" + Date.now() + ".png";
                                 document.body.appendChild(a);
                                 a.click();
                                 document.body.removeChild(a);
-
-                                // 稍後釋放 URL
-                                setTimeout(function () {
-                                    URL.revokeObjectURL(url);
-                                }, 10000);
                             },
                             "image/png"
                         );
                     });
                 });
             });
+
+            // 預覽縮圖點擊事件：打開大圖預覽
+            if (preview) {
+                preview.addEventListener("click", function (e) {
+                    if (currentCaptureUrl && e.target.tagName === "IMG") {
+                        openPreviewModal();
+                    }
+                });
+            }
+        }
+
+        // 打開預覽模态框
+        function openPreviewModal() {
+            const modal = document.getElementById("preview-modal");
+            const modalImg = document.getElementById("preview-modal-img");
+
+            if (!modal || !modalImg || !currentCaptureUrl) return;
+
+            modalImg.src = currentCaptureUrl;
+            modal.classList.add("active");
+        }
+
+        // 關閉預覽模态框
+        function closePreviewModal() {
+            const modal = document.getElementById("preview-modal");
+            if (modal) {
+                modal.classList.remove("active");
+            }
+        }
+
+        // 從預覽模态框保存圖片
+        function saveFromPreview() {
+            if (!currentCaptureBlob) return;
+
+            const url = URL.createObjectURL(currentCaptureBlob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "ar-capture-" + Date.now() + ".png";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(function () {
+                URL.revokeObjectURL(url);
+            }, 1000);
+        }
+
+        // 設置預覽模态框事件
+        function setupPreviewModal() {
+            const closeBtn = document.getElementById("preview-close-btn");
+            const saveBtn = document.getElementById("preview-save-btn");
+            const modal = document.getElementById("preview-modal");
+
+            if (closeBtn) {
+                closeBtn.addEventListener("click", closePreviewModal);
+            }
+
+            if (saveBtn) {
+                saveBtn.addEventListener("click", saveFromPreview);
+            }
+
+            // 點擊模态框背景關閉
+            if (modal) {
+                modal.addEventListener("click", function (e) {
+                    if (e.target === modal) {
+                        closePreviewModal();
+                    }
+                });
+            }
         }
 
         // 等待 A-Frame 準備完成後進行注入與綁定
@@ -498,10 +661,12 @@
             if (document.readyState === "complete") {
                 injectImagesIntoMarker();
                 setupCapture();
+                setupPreviewModal();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
                     injectImagesIntoMarker();
                     setupCapture();
+                    setupPreviewModal();
                 });
             }
         });

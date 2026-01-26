@@ -13,33 +13,11 @@
     <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
 
     <style>
-        html, body {
+        body {
             margin: 0;
             overflow: hidden;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background-color: #000;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* 讓 AR 場景與實際螢幕尺寸對齊，避免被額外放大/縮小 */
-        a-scene {
-            position: fixed;
-            inset: 0;
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* 有些瀏覽器會把 AR.js 的 video / canvas 以奇怪比例顯示，強制與螢幕同步 */
-        .a-canvas,
-        a-scene canvas,
-        video,
-        .arjs-video {
-            position: fixed;
-            inset: 0;
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover;
         }
 
         .hud {
@@ -138,7 +116,7 @@
     <a-scene
         vr-mode-ui="enabled: false;"
         loading-screen="enabled: false;"
-        renderer="logarithmicDepthBuffer: true; antialias: true;"
+        renderer="logarithmicDepthBuffer: true;"
         arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
         id="scene"
         embedded
@@ -494,28 +472,30 @@
             });
         }
 
-        // 設置 preserveDrawingBuffer（透過 JavaScript 直接設定 WebGLRenderer，避免 schema 警告）
+        // 設置 preserveDrawingBuffer（延遲設置，不影響場景初始化，避免 schema 警告）
         function setupPreserveDrawingBuffer() {
             const sceneEl = document.querySelector("a-scene");
             if (sceneEl && sceneEl.renderer) {
-                // 直接設置 THREE.js WebGLRenderer 的 preserveDrawingBuffer
                 sceneEl.renderer.preserveDrawingBuffer = true;
                 console.log("preserveDrawingBuffer 已設置為 true（用於截圖功能）");
             } else {
-                // 如果場景還沒準備好，等待一下再試
-                setTimeout(setupPreserveDrawingBuffer, 100);
+                setTimeout(setupPreserveDrawingBuffer, 200);
             }
         }
 
-        // 等待 A-Frame 準備完成後進行注入與綁定
+        // 等待 A-Frame 準備完成後進行注入與綁定（恢復正常版本的初始化邏輯）
         window.addEventListener("load", function () {
-            const sceneEl = document.querySelector("a-scene");
-            // 等待場景完全初始化
-            sceneEl.addEventListener("loaded", function () {
-                setupPreserveDrawingBuffer();
+            if (document.readyState === "complete") {
                 injectImagesIntoMarker();
                 setupCapture();
-            });
+                setupPreserveDrawingBuffer();
+            } else {
+                window.addEventListener("DOMContentLoaded", function () {
+                    injectImagesIntoMarker();
+                    setupCapture();
+                    setupPreserveDrawingBuffer();
+                });
+            }
         });
 
         // 頁面卸載時停止動畫

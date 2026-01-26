@@ -330,7 +330,7 @@
 
         .header-corner-image {
             position: absolute;
-            width: 120px;
+            width: 180px;
             height: auto;
             opacity: 0.9;
             z-index: 1;
@@ -760,7 +760,7 @@
             }
 
             .header-corner-image {
-                width: 60px !important;
+                width: 90px !important;
             }
 
             .header-corner-left {
@@ -996,7 +996,7 @@
             <div class="modes-section">
                 <button class="mode-button active" data-mode="easy">
                     <div class="mode-content">
-                        <div class="mode-title">全區地圖資訊 MAP</div>
+                        <div class="mode-title">全區地圖資訊</div>
                         <div class="mode-sub">點選地圖可放大查看細節與資訊。</div>
                     </div>
                     <div class="mode-pill">一指就上手</div>
@@ -1144,6 +1144,7 @@
                 const titleEl = panel.querySelector(".panel-title");
                 const textEls = panel.querySelectorAll(".panel-text");
                 const listEl = panel.querySelector(".panel-list");
+                const ctaSection = panel.querySelector(".cta-section");
 
                 // 更新標題
                 if (titleEl) {
@@ -1165,6 +1166,15 @@
                         li.textContent = bullet;
                         listEl.appendChild(li);
                     });
+                }
+
+                // 控制「開始體驗」按鈕的顯示/隱藏
+                if (ctaSection) {
+                    if (modeKey === "easy" || modeKey === "immersive") {
+                        ctaSection.style.display = "none";
+                    } else {
+                        ctaSection.style.display = "flex";
+                    }
                 }
 
                 // 地圖預覽顯示與切換圖檔

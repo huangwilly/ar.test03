@@ -410,7 +410,7 @@
             checkMarkerVisibility();
         }
 
-        // 拍照功能：合併 video 與 scene canvas（包含 marker 上的圖片）
+        // 拍照功能：合併 video 與 scene canvas
         function setupCapture() {
             const btn = document.getElementById("capture-btn");
             const preview = document.getElementById("capture-preview");
@@ -421,104 +421,70 @@
                 const sceneEl = document.querySelector("a-scene");
                 const video = document.querySelector("video");
 
-                if (!sceneEl) {
-                    console.warn("找不到 a-scene，無法截圖。");
+                // A-Frame 會在 sceneEl 上掛 canvas
+                const sceneCanvas = sceneEl && sceneEl.canvas;
+
+                if (!video || !sceneCanvas) {
+                    console.warn("找不到 video 或 scene canvas，無法截圖。");
                     return;
                 }
 
-                // 等待下一帧渲染完成，確保所有內容都已繪製
-                requestAnimationFrame(function() {
-                    // A-Frame 會在 sceneEl 上掛 canvas
-                    const sceneCanvas = sceneEl.canvas;
+                const width = video.videoWidth || sceneCanvas.width;
+                const height = video.videoHeight || sceneCanvas.height;
 
-                    if (!video) {
-                        console.warn("找不到 video，無法截圖。");
-                        return;
-                    }
+                if (!width || !height) {
+                    console.warn("影像尺寸無效，請稍後再試。");
+                    return;
+                }
 
-                    if (!sceneCanvas) {
-                        console.warn("找不到 scene canvas，無法截圖。");
-                        return;
-                    }
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
 
-                    // 使用 video 的實際尺寸，或使用 canvas 尺寸
-                    const videoWidth = video.videoWidth || video.clientWidth;
-                    const videoHeight = video.videoHeight || video.clientHeight;
-                    const canvasWidth = sceneCanvas.width;
-                    const canvasHeight = sceneCanvas.height;
+                // 先畫攝影機畫面
+                try {
+                    ctx.drawImage(video, 0, 0, width, height);
+                } catch (err) {
+                    console.error("無法繪製 video：", err);
+                }
 
-                    // 使用較大的尺寸以確保完整捕獲
-                    const width = Math.max(videoWidth, canvasWidth) || window.innerWidth;
-                    const height = Math.max(videoHeight, canvasHeight) || window.innerHeight;
+                // 再疊加 AR 場景
+                try {
+                    ctx.drawImage(sceneCanvas, 0, 0, width, height);
+                } catch (err) {
+                    console.error("無法繪製場景 canvas：", err);
+                }
 
-                    if (!width || !height) {
-                        console.warn("影像尺寸無效，請稍後再試。");
-                        return;
-                    }
+                canvas.toBlob(
+                    function (blob) {
+                        if (!blob) return;
 
-                    const canvas = document.createElement("canvas");
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext("2d", { alpha: false });
+                        const url = URL.createObjectURL(blob);
 
-                    // 先畫攝影機畫面作為背景
-                    try {
-                        if (videoWidth && videoHeight) {
-                            ctx.drawImage(video, 0, 0, videoWidth, videoHeight, 0, 0, width, height);
-                        } else {
-                            ctx.drawImage(video, 0, 0, width, height);
+                        // 更新預覽縮圖
+                        if (preview) {
+                            preview.innerHTML = "";
+                            const img = document.createElement("img");
+                            img.src = url;
+                            preview.appendChild(img);
                         }
-                    } catch (err) {
-                        console.error("無法繪製 video：", err);
-                        // 如果 video 繪製失敗，填充黑色背景
-                        ctx.fillStyle = "#000";
-                        ctx.fillRect(0, 0, width, height);
-                    }
 
-                    // 再疊加 AR 場景（包含 marker 上的所有圖片）
-                    try {
-                        // 使用 source-over 合成模式，確保 AR 內容疊加在 video 上
-                        ctx.globalCompositeOperation = "source-over";
-                        ctx.drawImage(sceneCanvas, 0, 0, canvasWidth, canvasHeight, 0, 0, width, height);
-                    } catch (err) {
-                        console.error("無法繪製場景 canvas：", err);
-                    }
+                        // 觸發下載
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "ar-capture-" + Date.now() + ".png";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
 
-                    // 轉換為圖片並下載
-                    canvas.toBlob(
-                        function (blob) {
-                            if (!blob) {
-                                console.error("無法生成圖片 blob");
-                                return;
-                            }
-
-                            const url = URL.createObjectURL(blob);
-
-                            // 更新預覽縮圖
-                            if (preview) {
-                                preview.innerHTML = "";
-                                const img = document.createElement("img");
-                                img.src = url;
-                                preview.appendChild(img);
-                            }
-
-                            // 觸發下載
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = "ar-capture-" + Date.now() + ".png";
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-
-                            // 稍後釋放 URL
-                            setTimeout(function () {
-                                URL.revokeObjectURL(url);
-                            }, 10000);
-                        },
-                        "image/png",
-                        1.0 // 最高品質
-                    );
-                });
+                        // 稍後釋放 URL
+                        setTimeout(function () {
+                            URL.revokeObjectURL(url);
+                        }, 10000);
+                    },
+                    "image/png"
+                );
             });
         }
 

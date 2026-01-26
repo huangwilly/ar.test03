@@ -417,6 +417,8 @@
         >
             <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
         </a-marker>
+        <!-- 顯示用根節點：圖片移來這裡後會每幀跟隨 marker，marker 消失後保持最後 pose 以維持 2 分鐘 -->
+        <a-entity id="image-display-root" visible="false"></a-entity>
 
         <a-entity camera></a-entity>
     </a-scene>
@@ -614,32 +616,52 @@
         let imageTimer = null;
         const DISPLAY_DURATION = 2 * 60 * 1000; // 2 分鐘（毫秒）
 
+        let imagesOnDisplayRoot = false;
         const worldPosTemp = typeof AFRAME !== "undefined" && AFRAME.THREE
             ? new AFRAME.THREE.Vector3()
             : null;
+        const worldQuatTemp = typeof AFRAME !== "undefined" && AFRAME.THREE
+            ? new AFRAME.THREE.Quaternion()
+            : null;
 
-        // 掃到 marker 時：將圖片從 marker 移到 scene，這樣 marker 消失後圖片仍可顯示 2 分鐘
-        function moveImagesToScene() {
+        // 每幀把 marker 的 pose 同步到 image-display-root（僅在「圖片在 root 上」且 marker 可見時）
+        function updateDisplayRootPose() {
+            if (!imagesOnDisplayRoot || !worldPosTemp || !worldQuatTemp) return;
             const marker = document.getElementById("animated-marker");
-            if (!marker || !marker.sceneEl || !worldPosTemp || !ImageAnimationSystem.images.length) return;
-            const sceneEl = marker.sceneEl;
+            const root = document.getElementById("image-display-root");
+            if (!marker || !root || !marker.object3D.visible) return;
+            marker.object3D.getWorldPosition(worldPosTemp);
+            marker.object3D.getWorldQuaternion(worldQuatTemp);
+            root.object3D.position.copy(worldPosTemp);
+            root.object3D.quaternion.copy(worldQuatTemp);
+        }
+
+        // 掃到 marker 時：將圖片從 marker 移到 image-display-root，之後每幀跟隨 marker，marker 消失後 root 保持最後 pose
+        function moveImagesToDisplayRoot() {
+            const marker = document.getElementById("animated-marker");
+            const root = document.getElementById("image-display-root");
+            if (!marker || !root || !worldPosTemp || !worldQuatTemp || !ImageAnimationSystem.images.length) return;
+            marker.object3D.getWorldPosition(worldPosTemp);
+            marker.object3D.getWorldQuaternion(worldQuatTemp);
+            root.object3D.position.copy(worldPosTemp);
+            root.object3D.quaternion.copy(worldQuatTemp);
+            root.setAttribute("visible", true);
             ImageAnimationSystem.images.forEach(function (imageData) {
                 const el = imageData.entity;
                 if (!el || !el.object3D || el.parentNode !== marker) return;
-                el.object3D.getWorldPosition(worldPosTemp);
                 marker.removeChild(el);
-                sceneEl.appendChild(el);
-                el.setAttribute("position", { x: worldPosTemp.x, y: worldPosTemp.y, z: worldPosTemp.z });
-                imageData.position.x = worldPosTemp.x;
-                imageData.position.y = worldPosTemp.y;
-                imageData.position.z = worldPosTemp.z;
+                root.appendChild(el);
             });
+            imagesOnDisplayRoot = true;
         }
 
-        // 2 分鐘到或要收起來時：把圖片移回 marker 並隱藏，下次掃描才能再觸發
+        // 2 分鐘到或要收起來時：把圖片移回 marker 並隱藏
         function moveImagesBackToMarker() {
             const marker = document.getElementById("animated-marker");
+            const root = document.getElementById("image-display-root");
             if (!marker || !ImageAnimationSystem.images.length) return;
+            imagesOnDisplayRoot = false;
+            if (root) root.setAttribute("visible", false);
             ImageAnimationSystem.images.forEach(function (imageData) {
                 const el = imageData.entity;
                 const init = imageData.initialLocalPosition;
@@ -655,7 +677,7 @@
             ImageAnimationSystem.stop();
         }
 
-        // 顯示所有圖片（僅控制顯示＋動畫；若圖片還在 marker 上會先由 startImageTimer 移出）
+        // 顯示所有圖片（僅控制顯示＋動畫）
         function showAllImages() {
             ImageAnimationSystem.images.forEach(imageData => {
                 if (imageData.entity && imageData.entity.object3D) {
@@ -682,7 +704,7 @@
                 ImageAnimationSystem.images[0].entity &&
                 ImageAnimationSystem.images[0].entity.parentNode === marker;
             if (marker && stillOnMarker) {
-                moveImagesToScene();
+                moveImagesToDisplayRoot();
             }
 
             showAllImages();
@@ -975,23 +997,21 @@
         }
 
         // 等待 A-Frame 準備完成後進行注入與綁定
+        function onSceneReady() {
+            injectImagesIntoMarker();
+            setupCapture();
+            setupLocationButton();
+            setupRiddleButton();
+            setupPreviewModal();
+            setupInfoModal();
+            var sceneEl = document.querySelector("a-scene");
+            if (sceneEl) sceneEl.addEventListener("tick", updateDisplayRootPose);
+        }
         window.addEventListener("load", function () {
             if (document.readyState === "complete") {
-                injectImagesIntoMarker();
-                setupCapture();
-                setupLocationButton();
-                setupRiddleButton();
-                setupPreviewModal();
-                setupInfoModal();
+                onSceneReady();
             } else {
-                window.addEventListener("DOMContentLoaded", function () {
-                    injectImagesIntoMarker();
-                    setupCapture();
-                    setupLocationButton();
-                    setupRiddleButton();
-                    setupPreviewModal();
-                    setupInfoModal();
-                });
+                window.addEventListener("DOMContentLoaded", onSceneReady);
             }
         });
 

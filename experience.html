@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Web AR 體驗</title>
 
     <!-- A-Frame 與 AR.js 相關腳本：保留原始架構要求 -->
@@ -116,7 +116,7 @@
     <a-scene
         vr-mode-ui="enabled: false;"
         loading-screen="enabled: false;"
-        renderer="logarithmicDepthBuffer: true;"
+        renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true;"
         arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
         id="scene"
         embedded
@@ -379,7 +379,7 @@
                 // 存儲圖片數據到動畫系統
                 ImageAnimationSystem.images.push({
                     entity: img,
-                    position: { ...position },
+                    position: { ...relativePosition },
                     velocity: velocity
                 });
             });
@@ -390,26 +390,32 @@
             // 啟動動畫系統
             ImageAnimationSystem.start();
 
-            // 確保所有圖片都顯示（即使 marker 消失也保持顯示）
-            ImageAnimationSystem.images.forEach(imageData => {
-                if (imageData.entity && imageData.entity.object3D) {
-                    imageData.entity.object3D.visible = true;
-                }
-            });
+            // 監聽 marker 可見性，確保圖片持續顯示（即使 marker 消失也保持顯示）
+            let markerVisible = false;
+            const checkMarkerVisibility = () => {
+                const markerEl = document.getElementById("animated-marker");
+                if (markerEl && markerEl.object3D) {
+                    markerVisible = markerEl.object3D.visible;
 
-            // 持續檢查並確保圖片始終可見（即使 marker 消失）
-            const keepImagesVisible = () => {
-                if (imagesShown) {
-                    ImageAnimationSystem.images.forEach(imageData => {
-                        if (imageData.entity && imageData.entity.object3D) {
-                            // 強制保持可見，即使 marker 消失
-                            imageData.entity.object3D.visible = true;
-                        }
-                    });
+                    // 當 marker 可見時，確保所有圖片都顯示
+                    if (markerVisible) {
+                        ImageAnimationSystem.images.forEach(imageData => {
+                            if (imageData.entity && imageData.entity.object3D) {
+                                imageData.entity.object3D.visible = true;
+                            }
+                        });
+                    } else if (imagesShown) {
+                        // 即使 marker 消失，也保持圖片可見
+                        ImageAnimationSystem.images.forEach(imageData => {
+                            if (imageData.entity && imageData.entity.object3D) {
+                                imageData.entity.object3D.visible = true;
+                            }
+                        });
+                    }
                 }
-                requestAnimationFrame(keepImagesVisible);
+                requestAnimationFrame(checkMarkerVisibility);
             };
-            keepImagesVisible();
+            checkMarkerVisibility();
 
             // 設置 2 分鐘後自動隱藏圖片
             if (hideImagesTimer) {
@@ -510,17 +516,6 @@
             });
         }
 
-        // 設置 preserveDrawingBuffer（延遲設置，不影響場景初始化，避免 schema 警告）
-        function setupPreserveDrawingBuffer() {
-            const sceneEl = document.querySelector("a-scene");
-            if (sceneEl && sceneEl.renderer) {
-                sceneEl.renderer.preserveDrawingBuffer = true;
-                console.log("preserveDrawingBuffer 已設置為 true（用於截圖功能）");
-            } else {
-                setTimeout(setupPreserveDrawingBuffer, 200);
-            }
-        }
-
         // 設置 marker 事件監聽：當 marker 被偵測到時自動顯示圖片
         function setupMarkerDetection() {
             const marker = document.getElementById("animated-marker");
@@ -541,12 +536,10 @@
             if (document.readyState === "complete") {
                 setupMarkerDetection();
                 setupCapture();
-                setupPreserveDrawingBuffer();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
                     setupMarkerDetection();
                     setupCapture();
-                    setupPreserveDrawingBuffer();
                 });
             }
         });

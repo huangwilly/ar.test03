@@ -307,19 +307,32 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
+        // 追蹤圖片是否已顯示
+        let imagesShown = false;
+        let hideImagesTimer = null;
+
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
-            if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
+            const scene = document.querySelector("a-scene");
+            if (!marker || !scene || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
                 return;
             }
+
+            // 如果圖片已經顯示過，不再重複創建
+            if (imagesShown) {
+                return;
+            }
+
+            // 獲取 marker 的當前位置（用於定位圖片）
+            const markerPosition = marker.object3D.position;
 
             const images = pickRandomImages(IMAGE_CONFIG.images, 10);
             const existingPositions = [];
 
             images.forEach((src, index) => {
-                // 生成不重疊的隨機位置
-                const position = ImageAnimationSystem.generateRandomPosition(existingPositions);
-                existingPositions.push({ ...position });
+                // 生成不重疊的隨機位置（相對於 marker）
+                const relativePosition = ImageAnimationSystem.generateRandomPosition(existingPositions);
+                existingPositions.push({ ...relativePosition });
 
                 // 生成隨機速度
                 const velocity = ImageAnimationSystem.generateRandomVelocity();
@@ -327,7 +340,8 @@
                 // 創建圖片實體
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
-                img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
+                // 使用相對位置（相對於 marker）
+                img.setAttribute("position", `${relativePosition.x} ${relativePosition.y} ${relativePosition.z}`);
                 img.setAttribute("rotation", "-90 0 0");
                 img.setAttribute("scale", "0.7 0.7 0.7");
                 img.setAttribute("class", "clickable");
@@ -335,6 +349,7 @@
                 // 移除透明外框：設置材質屬性
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
 
+                // 將圖片添加到 marker（這樣會跟隨 marker 的變換）
                 marker.appendChild(img);
 
                 // 圖片加載後移除透明外框
@@ -369,29 +384,52 @@
                 });
             });
 
+            // 標記圖片已顯示
+            imagesShown = true;
+
             // 啟動動畫系統
             ImageAnimationSystem.start();
 
-            // 監聽 marker 可見性，確保圖片持續顯示
-            let markerVisible = false;
-            const checkMarkerVisibility = () => {
-                const markerEl = document.getElementById("animated-marker");
-                if (markerEl && markerEl.object3D) {
-                    const wasVisible = markerVisible;
-                    markerVisible = markerEl.object3D.visible;
-
-                    // 當 marker 可見時，確保所有圖片都顯示
-                    if (markerVisible) {
-                        ImageAnimationSystem.images.forEach(imageData => {
-                            if (imageData.entity && imageData.entity.object3D) {
-                                imageData.entity.object3D.visible = true;
-                            }
-                        });
-                    }
+            // 確保所有圖片都顯示（即使 marker 消失也保持顯示）
+            ImageAnimationSystem.images.forEach(imageData => {
+                if (imageData.entity && imageData.entity.object3D) {
+                    imageData.entity.object3D.visible = true;
                 }
-                requestAnimationFrame(checkMarkerVisibility);
+            });
+
+            // 持續檢查並確保圖片始終可見（即使 marker 消失）
+            const keepImagesVisible = () => {
+                if (imagesShown) {
+                    ImageAnimationSystem.images.forEach(imageData => {
+                        if (imageData.entity && imageData.entity.object3D) {
+                            // 強制保持可見，即使 marker 消失
+                            imageData.entity.object3D.visible = true;
+                        }
+                    });
+                }
+                requestAnimationFrame(keepImagesVisible);
             };
-            checkMarkerVisibility();
+            keepImagesVisible();
+
+            // 設置 2 分鐘後自動隱藏圖片
+            if (hideImagesTimer) {
+                clearTimeout(hideImagesTimer);
+            }
+            hideImagesTimer = setTimeout(() => {
+                hideAllImages();
+            }, 2 * 60 * 1000); // 2 分鐘 = 120000 毫秒
+        }
+
+        // 隱藏所有圖片
+        function hideAllImages() {
+            ImageAnimationSystem.images.forEach(imageData => {
+                if (imageData.entity && imageData.entity.object3D) {
+                    imageData.entity.object3D.visible = false;
+                }
+            });
+            ImageAnimationSystem.stop();
+            imagesShown = false;
+            console.log("圖片已隱藏（2 分鐘時間到）");
         }
 
         // 拍照功能：合併 video 與 scene canvas
@@ -483,15 +521,30 @@
             }
         }
 
-        // 等待 A-Frame 準備完成後進行注入與綁定（恢復正常版本的初始化邏輯）
+        // 設置 marker 事件監聽：當 marker 被偵測到時自動顯示圖片
+        function setupMarkerDetection() {
+            const marker = document.getElementById("animated-marker");
+            if (!marker) {
+                setTimeout(setupMarkerDetection, 100);
+                return;
+            }
+
+            // 監聽 marker 被偵測到的事件
+            marker.addEventListener("markerFound", function () {
+                console.log("Marker 被偵測到，開始顯示圖片");
+                injectImagesIntoMarker();
+            });
+        }
+
+        // 等待 A-Frame 準備完成後進行初始化
         window.addEventListener("load", function () {
             if (document.readyState === "complete") {
-                injectImagesIntoMarker();
+                setupMarkerDetection();
                 setupCapture();
                 setupPreserveDrawingBuffer();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
-                    injectImagesIntoMarker();
+                    setupMarkerDetection();
                     setupCapture();
                     setupPreserveDrawingBuffer();
                 });

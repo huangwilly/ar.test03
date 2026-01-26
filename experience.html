@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Web AR 體驗</title>
 
     <!-- A-Frame 與 AR.js 相關腳本：保留原始架構要求 -->
@@ -15,14 +15,26 @@
     <style>
         body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background-color: #000;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+        }
+        
+        a-scene {
+            width: 100% !important;
+            height: 100% !important;
         }
 
         .hud {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             pointer-events: none;
             display: flex;
             flex-direction: column;
@@ -307,16 +319,24 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
+        // 持續顯示的圖片容器（放在場景根目錄，不依賴 marker）
+        let persistentImageContainer = null;
+        let hasBeenFound = false; // 標記是否已經被識別過
+
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
-            if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
+            const scene = document.querySelector("a-scene");
+            if (!marker || !scene || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
                 return;
             }
 
+            // 創建持續顯示的圖片容器（放在場景中，不在 marker 內）
+            persistentImageContainer = document.createElement("a-entity");
+            persistentImageContainer.setAttribute("id", "persistent-images-container");
+            scene.appendChild(persistentImageContainer);
+
             const images = pickRandomImages(IMAGE_CONFIG.images, 10);
             const existingPositions = [];
-            const scene = document.querySelector("a-scene");
-            let objectsMovedToScene = false;
 
             images.forEach((src, index) => {
                 // 生成不重疊的隨機位置
@@ -326,7 +346,7 @@
                 // 生成隨機速度
                 const velocity = ImageAnimationSystem.generateRandomVelocity();
 
-                // 創建圖片實體
+                // 創建圖片實體（放在持續顯示容器中，而不是 marker 中）
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
@@ -337,7 +357,8 @@
                 // 移除透明外框：設置材質屬性
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
 
-                marker.appendChild(img);
+                // 將圖片添加到持續顯示容器中
+                persistentImageContainer.appendChild(img);
 
                 // 圖片加載後移除透明外框
                 img.addEventListener("loaded", function() {
@@ -374,91 +395,32 @@
             // 啟動動畫系統
             ImageAnimationSystem.start();
 
-            // 監聽 marker 可見性，確保圖片持續顯示
-            let markerVisible = false;
-            let markerWasVisible = false;
-            let markerFirstDetected = false;
-            const THREE = AFRAME.THREE;
-            
-            const checkMarkerVisibility = () => {
-                const markerEl = document.getElementById("animated-marker");
-                if (markerEl && markerEl.object3D) {
-                    markerWasVisible = markerVisible;
-                    markerVisible = markerEl.object3D.visible;
-
-                    if (markerVisible) {
-                        // marker 可見時，確保所有圖片都顯示
-                        ImageAnimationSystem.images.forEach(imageData => {
-                            if (imageData.entity && imageData.entity.object3D) {
-                                imageData.entity.object3D.visible = true;
-                            }
-                        });
-                        
-                        // 第一次檢測到 marker 時，將物件移到場景根級別以保持持續顯示
-                        if (!markerFirstDetected && THREE && !objectsMovedToScene) {
-                            ImageAnimationSystem.images.forEach(imageData => {
-                                const img = imageData.entity;
-                                if (img && img.object3D && img.parentElement === markerEl) {
-                                    // 獲取物件的世界位置、旋轉和縮放
-                                    const worldPos = new THREE.Vector3();
-                                    const worldQuat = new THREE.Quaternion();
-                                    const worldScale = new THREE.Vector3();
-                                    img.object3D.matrixWorld.decompose(worldPos, worldQuat, worldScale);
-                                    
-                                    // 將物件移到場景根級別
-                                    scene.appendChild(img);
-                                    
-                                    // 設置世界位置
-                                    img.object3D.position.copy(worldPos);
-                                    img.object3D.quaternion.copy(worldQuat);
-                                    img.object3D.scale.copy(worldScale);
-                                    
-                                    // 確保物件可見
-                                    img.object3D.visible = true;
-                                }
-                            });
-                            objectsMovedToScene = true;
-                            markerFirstDetected = true;
-                        } else if (markerFirstDetected && objectsMovedToScene && THREE) {
-                            // marker 可見且物件已在場景中，持續更新物件位置以匹配 marker
-                            ImageAnimationSystem.images.forEach(imageData => {
-                                const img = imageData.entity;
-                                if (img && img.object3D && img.parentElement === scene) {
-                                    // 計算物件相對於 marker 的世界位置
-                                    const localPos = new THREE.Vector3(
-                                        imageData.position.x,
-                                        imageData.position.y,
-                                        imageData.position.z
-                                    );
-                                    
-                                    // 獲取 marker 的世界變換
-                                    const markerWorldPos = new THREE.Vector3();
-                                    const markerWorldQuat = new THREE.Quaternion();
-                                    const markerWorldScale = new THREE.Vector3();
-                                    markerEl.object3D.matrixWorld.decompose(markerWorldPos, markerWorldQuat, markerWorldScale);
-                                    
-                                    // 將本地位置轉換為世界位置
-                                    const worldPos = localPos.clone().applyQuaternion(markerWorldQuat).add(markerWorldPos);
-                                    
-                                    // 更新物件位置
-                                    img.object3D.position.copy(worldPos);
-                                    img.object3D.quaternion.copy(markerWorldQuat);
-                                    img.object3D.visible = true;
-                                }
-                            });
+            // 監聽 marker 被識別的事件
+            marker.addEventListener("markerFound", function() {
+                if (!hasBeenFound) {
+                    hasBeenFound = true;
+                    // 當 marker 第一次被識別時，確保所有圖片都顯示
+                    ImageAnimationSystem.images.forEach(imageData => {
+                        if (imageData.entity && imageData.entity.object3D) {
+                            imageData.entity.object3D.visible = true;
                         }
-                    } else if (!markerVisible && objectsMovedToScene) {
-                        // marker 不可見，但物件已在場景中，確保它們可見（使用最後的位置）
-                        ImageAnimationSystem.images.forEach(imageData => {
-                            if (imageData.entity && imageData.entity.object3D) {
-                                imageData.entity.object3D.visible = true;
-                            }
-                        });
-                    }
+                    });
                 }
-                requestAnimationFrame(checkMarkerVisibility);
+            });
+
+            // 持續監控，確保圖片始終可見（即使 marker 不可見）
+            const keepImagesVisible = () => {
+                if (hasBeenFound && persistentImageContainer) {
+                    // 強制保持所有圖片可見
+                    ImageAnimationSystem.images.forEach(imageData => {
+                        if (imageData.entity && imageData.entity.object3D) {
+                            imageData.entity.object3D.visible = true;
+                        }
+                    });
+                }
+                requestAnimationFrame(keepImagesVisible);
             };
-            checkMarkerVisibility();
+            keepImagesVisible();
         }
 
         // 拍照功能：合併 video 與 scene canvas

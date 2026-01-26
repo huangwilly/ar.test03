@@ -617,34 +617,40 @@
         const DISPLAY_DURATION = 2 * 60 * 1000; // 2 分鐘（毫秒）
 
         let imagesOnDisplayRoot = false;
-        const worldPosTemp = typeof AFRAME !== "undefined" && AFRAME.THREE
-            ? new AFRAME.THREE.Vector3()
-            : null;
-        const worldQuatTemp = typeof AFRAME !== "undefined" && AFRAME.THREE
-            ? new AFRAME.THREE.Quaternion()
-            : null;
+        const THREE = typeof AFRAME !== "undefined" && AFRAME.THREE ? AFRAME.THREE : null;
+        const worldPosTemp = THREE ? new THREE.Vector3() : null;
+        const worldQuatTemp = THREE ? new THREE.Quaternion() : null;
+        const worldEulerTemp = THREE ? new THREE.Euler() : null;
+
+        function applyMarkerPoseToRoot(marker, root) {
+            if (!worldPosTemp || !worldQuatTemp || !worldEulerTemp || !root) return;
+            marker.object3D.getWorldPosition(worldPosTemp);
+            marker.object3D.getWorldQuaternion(worldQuatTemp);
+            worldEulerTemp.setFromQuaternion(worldQuatTemp);
+            root.setAttribute("position", { x: worldPosTemp.x, y: worldPosTemp.y, z: worldPosTemp.z });
+            var r2d = function (r) { return r * 180 / Math.PI; };
+            root.setAttribute("rotation", {
+                x: r2d(worldEulerTemp.x),
+                y: r2d(worldEulerTemp.y),
+                z: r2d(worldEulerTemp.z)
+            });
+        }
 
         // 每幀把 marker 的 pose 同步到 image-display-root（僅在「圖片在 root 上」且 marker 可見時）
         function updateDisplayRootPose() {
-            if (!imagesOnDisplayRoot || !worldPosTemp || !worldQuatTemp) return;
+            if (!imagesOnDisplayRoot) return;
             const marker = document.getElementById("animated-marker");
             const root = document.getElementById("image-display-root");
             if (!marker || !root || !marker.object3D.visible) return;
-            marker.object3D.getWorldPosition(worldPosTemp);
-            marker.object3D.getWorldQuaternion(worldQuatTemp);
-            root.object3D.position.copy(worldPosTemp);
-            root.object3D.quaternion.copy(worldQuatTemp);
+            applyMarkerPoseToRoot(marker, root);
         }
 
         // 掃到 marker 時：將圖片從 marker 移到 image-display-root，之後每幀跟隨 marker，marker 消失後 root 保持最後 pose
         function moveImagesToDisplayRoot() {
             const marker = document.getElementById("animated-marker");
             const root = document.getElementById("image-display-root");
-            if (!marker || !root || !worldPosTemp || !worldQuatTemp || !ImageAnimationSystem.images.length) return;
-            marker.object3D.getWorldPosition(worldPosTemp);
-            marker.object3D.getWorldQuaternion(worldQuatTemp);
-            root.object3D.position.copy(worldPosTemp);
-            root.object3D.quaternion.copy(worldQuatTemp);
+            if (!marker || !root || !ImageAnimationSystem.images.length) return;
+            applyMarkerPoseToRoot(marker, root);
             root.setAttribute("visible", true);
             ImageAnimationSystem.images.forEach(function (imageData) {
                 const el = imageData.entity;

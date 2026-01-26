@@ -268,6 +268,113 @@
             transform: scale(0.95);
         }
 
+        /* 信息模态框 */
+        .info-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+            padding: 20px;
+        }
+
+        .info-modal.active {
+            display: flex;
+        }
+
+        .info-modal-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 80vh;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .info-modal-title {
+            font-size: 5vw;
+            font-weight: 700;
+            color: #f9fafb;
+            margin: 0;
+            text-align: center;
+        }
+
+        .info-modal-text {
+            font-size: 4vw;
+            color: #e5e7eb;
+            line-height: 1.6;
+            margin: 0;
+            text-align: center;
+        }
+
+        .info-modal-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .info-modal button {
+            pointer-events: auto;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 28px;
+            font-size: 4.2vw;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            min-height: 48px;
+            flex: 1;
+            min-width: 140px;
+            max-width: 250px;
+            transition: all 0.15s ease;
+            touch-action: manipulation;
+        }
+
+        .info-modal button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-info-close {
+            background: rgba(59, 130, 246, 0.92);
+            color: #f9fafb;
+        }
+
+        .btn-info-close:active {
+            background: rgba(37, 99, 235, 0.95);
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .info-modal-content {
+                max-height: 85vh;
+                padding: 16px;
+            }
+
+            .info-modal-title {
+                font-size: 4vw;
+            }
+
+            .info-modal-text {
+                font-size: 3.5vw;
+            }
+
+            .info-modal button {
+                font-size: 3.5vw;
+                padding: 12px 24px;
+            }
+        }
+
         /* 強制畫布填滿，防止視角被拉伸 */
         .a-canvas {
             width: 100% !important;
@@ -342,6 +449,17 @@
             <div class="preview-modal-actions">
                 <button id="preview-close-btn" class="btn-close">關閉</button>
                 <button id="preview-save-btn" class="btn-save">儲存圖片</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 信息模态框 -->
+    <div id="info-modal" class="info-modal">
+        <div class="info-modal-content">
+            <h2 id="info-modal-title" class="info-modal-title"></h2>
+            <p id="info-modal-text" class="info-modal-text"></p>
+            <div class="info-modal-actions">
+                <button id="info-close-btn" class="btn-info-close">確定</button>
             </div>
         </div>
     </div>
@@ -691,14 +809,34 @@
             }, 1000);
         }
 
+        // 顯示信息模态框（非阻塞）
+        function showInfoModal(title, text) {
+            const modal = document.getElementById("info-modal");
+            const titleEl = document.getElementById("info-modal-title");
+            const textEl = document.getElementById("info-modal-text");
+
+            if (modal && titleEl && textEl) {
+                titleEl.textContent = title;
+                textEl.textContent = text;
+                modal.classList.add("active");
+            }
+        }
+
+        // 關閉信息模态框
+        function closeInfoModal() {
+            const modal = document.getElementById("info-modal");
+            if (modal) {
+                modal.classList.remove("active");
+            }
+        }
+
         // 設置位置介紹按鈕
         function setupLocationButton() {
             const locationBtn = document.getElementById("location-btn");
             if (locationBtn) {
                 locationBtn.addEventListener("click", function () {
-                    // 這裡可以添加位置介紹的功能
-                    // 例如：顯示位置介紹的模态框或跳轉到相關頁面
-                    alert("位置介紹功能");
+                    // 使用非阻塞的模态框替代 alert
+                    showInfoModal("位置介紹", "這裡可以添加位置介紹的詳細內容。");
                 });
             }
         }
@@ -708,9 +846,8 @@
             const riddleBtn = document.getElementById("riddle-btn");
             if (riddleBtn) {
                 riddleBtn.addEventListener("click", function () {
-                    // 這裡可以添加猜燈謎的功能
-                    // 例如：顯示猜燈謎的模态框或跳轉到相關頁面
-                    alert("猜燈謎功能");
+                    // 使用非阻塞的模态框替代 alert
+                    showInfoModal("猜燈謎", "這裡可以添加猜燈謎的遊戲內容。");
                 });
             }
         }
@@ -739,6 +876,25 @@
             }
         }
 
+        // 設置信息模态框事件
+        function setupInfoModal() {
+            const closeBtn = document.getElementById("info-close-btn");
+            const modal = document.getElementById("info-modal");
+
+            if (closeBtn) {
+                closeBtn.addEventListener("click", closeInfoModal);
+            }
+
+            // 點擊模态框背景關閉
+            if (modal) {
+                modal.addEventListener("click", function (e) {
+                    if (e.target === modal) {
+                        closeInfoModal();
+                    }
+                });
+            }
+        }
+
         // 等待 A-Frame 準備完成後進行注入與綁定
         window.addEventListener("load", function () {
             if (document.readyState === "complete") {
@@ -747,6 +903,7 @@
                 setupLocationButton();
                 setupRiddleButton();
                 setupPreviewModal();
+                setupInfoModal();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
                     injectImagesIntoMarker();
@@ -754,6 +911,7 @@
                     setupLocationButton();
                     setupRiddleButton();
                     setupPreviewModal();
+                    setupInfoModal();
                 });
             }
         });

@@ -793,10 +793,7 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
-        // 掃描後持續保留機制（取消 2 分鐘計時器，改為掃描後一直保留）
-        let imagesDetachedFromMarker = false; // 是否已從 marker 解綁
-
-        // 顯示所有圖片
+        // 顯示所有圖片並啟動動畫
         function showAllImages() {
             ImageAnimationSystem.images.forEach(imageData => {
                 if (imageData.entity && imageData.entity.object3D) {
@@ -806,7 +803,7 @@
             ImageAnimationSystem.start();
         }
 
-        // 隱藏所有圖片
+        // 隱藏所有圖片並停止動畫
         function hideAllImages() {
             ImageAnimationSystem.images.forEach(imageData => {
                 if (imageData.entity && imageData.entity.object3D) {
@@ -889,68 +886,11 @@
 
             // 使用 AR.js 正確的事件監聽 marker 檢測
             marker.addEventListener("markerFound", function() {
-                const sceneEl = document.querySelector("a-scene");
-                const THREE = AFRAME && AFRAME.THREE;
-
-                // 第一次掃描到 marker 時，將圖片從 marker 解綁到場景中，之後就不再受 marker 顯示/隱藏影響
-                if (sceneEl && THREE && !imagesDetachedFromMarker) {
-                    sceneEl.object3D.updateMatrixWorld(true);
-
-                    // 建立一個專門放圖片的容器
-                    let imageRoot = document.getElementById("image-root");
-                    if (!imageRoot) {
-                        imageRoot = document.createElement("a-entity");
-                        imageRoot.setAttribute("id", "image-root");
-                        sceneEl.appendChild(imageRoot);
-                    }
-
-                    ImageAnimationSystem.images.forEach(imageData => {
-                        const entity = imageData.entity;
-                        if (!entity || !entity.object3D) return;
-
-                        const obj3D = entity.object3D;
-                        const worldPos = new THREE.Vector3();
-                        const worldQuat = new THREE.Quaternion();
-                        const worldScale = new THREE.Vector3();
-
-                        obj3D.updateMatrixWorld(true);
-                        obj3D.matrixWorld.decompose(worldPos, worldQuat, worldScale);
-
-                        // 從 marker DOM 移除，掛到 imageRoot 下面
-                        if (entity.parentElement === marker) {
-                            marker.removeChild(entity);
-                        }
-                        imageRoot.appendChild(entity);
-
-                        // 把世界座標/旋轉/縮放寫回 attribute（現在相對於 scene root）
-                        const euler = new THREE.Euler().setFromQuaternion(worldQuat, "XYZ");
-                        const radToDeg = 180 / Math.PI;
-                        const rx = euler.x * radToDeg;
-                        const ry = euler.y * radToDeg;
-                        const rz = euler.z * radToDeg;
-                        entity.setAttribute("position", `${worldPos.x} ${worldPos.y} ${worldPos.z}`);
-                        entity.setAttribute("rotation", `${rx} ${ry} ${rz}`);
-                        entity.setAttribute("scale", `${worldScale.x} ${worldScale.y} ${worldScale.z}`);
-
-                        // 同步動畫系統裡的座標
-                        imageData.position = {
-                            x: worldPos.x,
-                            y: worldPos.y,
-                            z: worldPos.z
-                        };
-                    });
-
-                    imagesDetachedFromMarker = true;
-                }
-
-                // 每次掃描到 marker 時，確保圖片顯示並啟動動畫（之後就一直保留在畫面中）
+                // 第一次偵測到 marker 時，顯示圖片並開始動畫
                 showAllImages();
             });
 
-            marker.addEventListener("markerLost", function() {
-                // 掃描後圖片已經解綁並由我們自行控制可見性
-                // 這裡不做任何事，讓圖片持續保留在畫面中
-            });
+            // 不再在 markerLost 時隱藏圖片，確保圖片一旦顯示就會一直保持
         }
 
         // 保存當前截圖的 blob 和 URL

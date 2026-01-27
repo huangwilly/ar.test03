@@ -924,8 +924,12 @@
 
                         // 把世界座標/旋轉/縮放寫回 attribute（現在相對於 scene root）
                         const euler = new THREE.Euler().setFromQuaternion(worldQuat, "XYZ");
+                        const radToDeg = 180 / Math.PI;
+                        const rx = euler.x * radToDeg;
+                        const ry = euler.y * radToDeg;
+                        const rz = euler.z * radToDeg;
                         entity.setAttribute("position", `${worldPos.x} ${worldPos.y} ${worldPos.z}`);
-                        entity.setAttribute("rotation", `${THREE.MathUtils.radToDeg(euler.x)} ${THREE.MathUtils.radToDeg(euler.y)} ${THREE.MathUtils.radToDeg(euler.z)}`);
+                        entity.setAttribute("rotation", `${rx} ${ry} ${rz}`);
                         entity.setAttribute("scale", `${worldScale.x} ${worldScale.y} ${worldScale.z}`);
 
                         // 同步動畫系統裡的座標

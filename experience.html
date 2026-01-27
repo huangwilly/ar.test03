@@ -397,10 +397,9 @@
 <body>
     <!-- AR 場景：沿用原始架構，renderer 增加 preserveDrawingBuffer 以支援截圖 -->
     <a-scene
-        embedded
         vr-mode-ui="enabled: false;"
         renderer="logarithmicDepthBuffer: true; preserveDrawingBuffer: true; antialias: true;"
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;"
         id="scene"
         gesture-detector
     >

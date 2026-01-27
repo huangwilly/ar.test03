@@ -378,6 +378,135 @@
             }
         }
 
+        /* 猜燈謎模態框（樣式沿用 info-modal，稍作區隔） */
+        .riddle-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+            padding: 20px;
+        }
+
+        .riddle-modal.active {
+            display: flex;
+        }
+
+        .riddle-modal-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 80vh;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .riddle-modal-title {
+            font-size: clamp(18px, 5vw, 24px);
+            font-weight: 700;
+            color: #f9fafb;
+            margin: 0;
+            text-align: center;
+        }
+
+        .riddle-modal-question {
+            font-size: clamp(16px, 4.5vw, 22px);
+            color: #e5e7eb;
+            line-height: 1.7;
+            margin: 0;
+            text-align: center;
+        }
+
+        .riddle-modal-answer {
+            font-size: clamp(16px, 4.5vw, 22px);
+            color: #f9fafb;
+            line-height: 1.7;
+            margin: 4px 0 0;
+            text-align: center;
+        }
+
+        .riddle-modal-answer--hidden {
+            color: #9ca3af;
+        }
+
+        .riddle-modal-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .riddle-modal button {
+            pointer-events: auto;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 24px;
+            font-size: clamp(14px, 4.2vw, 20px);
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            min-height: 48px;
+            flex: 1;
+            min-width: 120px;
+            max-width: 220px;
+            transition: all 0.15s ease;
+            touch-action: manipulation;
+        }
+
+        .riddle-modal button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-riddle-close {
+            background: rgba(71, 85, 105, 0.9);
+            color: #e5e7eb;
+        }
+
+        .btn-riddle-close:active {
+            background: rgba(100, 116, 139, 0.95);
+        }
+
+        .btn-riddle-answer {
+            background: rgba(168, 85, 247, 0.95);
+            color: #f9fafb;
+        }
+
+        .btn-riddle-answer:active {
+            background: rgba(147, 51, 234, 1);
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .riddle-modal-content {
+                max-height: 85vh;
+                padding: 16px;
+            }
+
+            .riddle-modal-title {
+                font-size: clamp(16px, 4vw, 22px);
+            }
+
+            .riddle-modal-question,
+            .riddle-modal-answer {
+                font-size: clamp(14px, 3.5vw, 20px);
+            }
+
+            .riddle-modal button {
+                font-size: clamp(13px, 3.5vw, 18px);
+                padding: 12px 22px;
+            }
+        }
+
         /* 強制畫布填滿，防止視角被拉伸 */
         .a-canvas {
             width: 100% !important;
@@ -466,7 +595,58 @@
         </div>
     </div>
 
+    <!-- 猜燈謎模态框 -->
+    <div id="riddle-modal" class="riddle-modal">
+        <div class="riddle-modal-content">
+            <h2 class="riddle-modal-title">猜燈謎</h2>
+            <p id="riddle-question" class="riddle-modal-question"></p>
+            <p id="riddle-answer" class="riddle-modal-answer riddle-modal-answer--hidden">
+                （點擊下方「顯示答案」查看）
+            </p>
+            <div class="riddle-modal-actions">
+                <button id="riddle-close-btn" class="btn-riddle-close">關閉</button>
+                <button id="riddle-answer-btn" class="btn-riddle-answer">顯示答案</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // 猜燈謎題庫
+        const RIDDLES = [
+            {
+                id: 1,
+                category: "Classic",
+                question: "遠看像面鼓，近看像個碗，有人對它笑，它也對人笑",
+                answer: "鏡子"
+            },
+            {
+                id: 2,
+                category: "Classic",
+                question: "一位公公精神好，早晨出門晚上歸，萬物生長全靠他",
+                answer: "太陽"
+            },
+            {
+                id: 3,
+                category: "Classic",
+                question: "沒手沒腳會走路，沒翅沒羽會飛翔，沒眼沒鼻會流淚",
+                answer: "雲"
+            },
+            {
+                id: 4,
+                category: "Classic",
+                question: "小小遊泳家，尾巴像扇子，穿著魚鱗衣，整天水中玩",
+                answer: "金魚"
+            },
+            {
+                id: 5,
+                category: "Classic",
+                question: "一間屋子沒門窗，裡面住著小黃郎，等到哪天門開了，小黃郎變小飛將",
+                answer: "蠶"
+            }
+        ];
+
+        let currentRiddle = null;
+
         // 根據命名規則自動產生圖片列表：img (1).png ~ img (654).png
         const IMAGE_CONFIG = {
             images: []
@@ -613,9 +793,8 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
-        // 2 分鐘計時器
-        let imageTimer = null;
-        const DISPLAY_DURATION = 2 * 60 * 1000; // 2 分鐘（毫秒）
+        // 掃描後持續保留機制（取消 2 分鐘計時器，改為掃描後一直保留）
+        let imagesDetachedFromMarker = false; // 是否已從 marker 解綁
 
         // 顯示所有圖片
         function showAllImages() {
@@ -635,24 +814,6 @@
                 }
             });
             ImageAnimationSystem.stop();
-        }
-
-        // 啟動 2 分鐘計時器
-        function startImageTimer() {
-            // 清除舊的計時器
-            if (imageTimer) {
-                clearTimeout(imageTimer);
-                imageTimer = null;
-            }
-
-            // 顯示圖片
-            showAllImages();
-
-            // 設置 2 分鐘後隱藏
-            imageTimer = setTimeout(() => {
-                hideAllImages();
-                imageTimer = null;
-            }, DISPLAY_DURATION);
         }
 
         function injectImagesIntoMarker() {
@@ -728,13 +889,63 @@
 
             // 使用 AR.js 正確的事件監聽 marker 檢測
             marker.addEventListener("markerFound", function() {
-                // marker 被檢測到時，啟動 2 分鐘計時器並顯示圖片
-                startImageTimer();
+                const sceneEl = document.querySelector("a-scene");
+                const THREE = AFRAME && AFRAME.THREE;
+
+                // 第一次掃描到 marker 時，將圖片從 marker 解綁到場景中，之後就不再受 marker 顯示/隱藏影響
+                if (sceneEl && THREE && !imagesDetachedFromMarker) {
+                    sceneEl.object3D.updateMatrixWorld(true);
+
+                    // 建立一個專門放圖片的容器
+                    let imageRoot = document.getElementById("image-root");
+                    if (!imageRoot) {
+                        imageRoot = document.createElement("a-entity");
+                        imageRoot.setAttribute("id", "image-root");
+                        sceneEl.appendChild(imageRoot);
+                    }
+
+                    ImageAnimationSystem.images.forEach(imageData => {
+                        const entity = imageData.entity;
+                        if (!entity || !entity.object3D) return;
+
+                        const obj3D = entity.object3D;
+                        const worldPos = new THREE.Vector3();
+                        const worldQuat = new THREE.Quaternion();
+                        const worldScale = new THREE.Vector3();
+
+                        obj3D.updateMatrixWorld(true);
+                        obj3D.matrixWorld.decompose(worldPos, worldQuat, worldScale);
+
+                        // 從 marker DOM 移除，掛到 imageRoot 下面
+                        if (entity.parentElement === marker) {
+                            marker.removeChild(entity);
+                        }
+                        imageRoot.appendChild(entity);
+
+                        // 把世界座標/旋轉/縮放寫回 attribute（現在相對於 scene root）
+                        const euler = new THREE.Euler().setFromQuaternion(worldQuat, "XYZ");
+                        entity.setAttribute("position", `${worldPos.x} ${worldPos.y} ${worldPos.z}`);
+                        entity.setAttribute("rotation", `${THREE.MathUtils.radToDeg(euler.x)} ${THREE.MathUtils.radToDeg(euler.y)} ${THREE.MathUtils.radToDeg(euler.z)}`);
+                        entity.setAttribute("scale", `${worldScale.x} ${worldScale.y} ${worldScale.z}`);
+
+                        // 同步動畫系統裡的座標
+                        imageData.position = {
+                            x: worldPos.x,
+                            y: worldPos.y,
+                            z: worldPos.z
+                        };
+                    });
+
+                    imagesDetachedFromMarker = true;
+                }
+
+                // 每次掃描到 marker 時，確保圖片顯示並啟動動畫（之後就一直保留在畫面中）
+                showAllImages();
             });
 
             marker.addEventListener("markerLost", function() {
-                // marker 丟失時不立即隱藏，等待計時器自然結束
-                // 這樣可以讓圖片在 marker 短暫丟失時仍然顯示
+                // 掃描後圖片已經解綁並由我們自行控制可見性
+                // 這裡不做任何事，讓圖片持續保留在畫面中
             });
         }
 
@@ -881,13 +1092,81 @@
             }
         }
 
-        // 設置猜燈謎按鈕
+        // 打開猜燈謎模態框
+        function openRiddleModal() {
+            const modal = document.getElementById("riddle-modal");
+            const questionEl = document.getElementById("riddle-question");
+            const answerEl = document.getElementById("riddle-answer");
+            const answerBtn = document.getElementById("riddle-answer-btn");
+
+            if (!modal || !questionEl || !answerEl || !answerBtn || !currentRiddle) return;
+
+            // 題目
+            questionEl.textContent = currentRiddle.question;
+
+            // 初始隱藏答案
+            answerEl.textContent = "（點擊下方「顯示答案」查看）";
+            answerEl.classList.add("riddle-modal-answer--hidden");
+            answerBtn.textContent = "顯示答案";
+
+            modal.classList.add("active");
+        }
+
+        // 關閉猜燈謎模態框
+        function closeRiddleModal() {
+            const modal = document.getElementById("riddle-modal");
+            if (modal) {
+                modal.classList.remove("active");
+            }
+        }
+
+        // 顯示/隱藏答案
+        function toggleRiddleAnswer() {
+            const answerEl = document.getElementById("riddle-answer");
+            const answerBtn = document.getElementById("riddle-answer-btn");
+
+            if (!answerEl || !answerBtn || !currentRiddle) return;
+
+            const isHidden = answerEl.classList.contains("riddle-modal-answer--hidden");
+
+            if (isHidden) {
+                answerEl.textContent = currentRiddle.answer;
+                answerEl.classList.remove("riddle-modal-answer--hidden");
+                answerBtn.textContent = "隱藏答案";
+            } else {
+                answerEl.textContent = "（點擊下方「顯示答案」查看）";
+                answerEl.classList.add("riddle-modal-answer--hidden");
+                answerBtn.textContent = "顯示答案";
+            }
+        }
+
+        // 設置猜燈謎按鈕與模態框
         function setupRiddleButton() {
             const riddleBtn = document.getElementById("riddle-btn");
+            const closeBtn = document.getElementById("riddle-close-btn");
+            const answerBtn = document.getElementById("riddle-answer-btn");
+            const modal = document.getElementById("riddle-modal");
+
             if (riddleBtn) {
                 riddleBtn.addEventListener("click", function () {
-                    // 使用非阻塞的模态框替代 alert
-                    showInfoModal("猜燈謎", "這裡可以添加猜燈謎的遊戲內容。");
+                    openRiddleModal();
+                });
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener("click", closeRiddleModal);
+            }
+
+            if (answerBtn) {
+                answerBtn.addEventListener("click", toggleRiddleAnswer);
+            }
+
+            // 點擊背景關閉
+            if (modal) {
+                modal.addEventListener("click", function (e) {
+                    if (e.target === modal) {
+                        closeRiddleModal();
+                    }
                 });
             }
         }
@@ -937,6 +1216,12 @@
 
         // 等待 A-Frame 準備完成後進行注入與綁定
         window.addEventListener("load", function () {
+            // 進入頁面時隨機選一題燈謎
+            if (Array.isArray(RIDDLES) && RIDDLES.length > 0) {
+                const idx = Math.floor(Math.random() * RIDDLES.length);
+                currentRiddle = RIDDLES[idx];
+            }
+
             if (document.readyState === "complete") {
                 injectImagesIntoMarker();
                 setupCapture();

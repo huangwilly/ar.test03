@@ -550,6 +550,18 @@
             <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
         </a-marker>
 
+        <a-marker
+            id="animated-marker2"
+            type="pattern"
+            preset="custom"
+            url="assets/marker2.patt"
+            raycaster="objects: .clickable2"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+        >
+            <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable2 與 gesture-handler，只顯示隨機 3 張圖片 -->
+        </a-marker>
+
         <a-entity camera></a-entity>
     </a-scene>
 
@@ -813,14 +825,16 @@
             ImageAnimationSystem.stop();
         }
 
-        function injectImagesIntoMarker() {
-            const marker = document.getElementById("animated-marker");
+        // 為特定 marker 注入圖片（通用函數）
+        function injectImagesIntoMarker(markerId, imageCount, clickableClass) {
+            const marker = document.getElementById(markerId);
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
                 return;
             }
 
-            const images = pickRandomImages(IMAGE_CONFIG.images, 5);
+            const images = pickRandomImages(IMAGE_CONFIG.images, imageCount);
             const existingPositions = [];
+            const markerImages = []; // 存儲此 marker 的圖片數據
 
             images.forEach((src, index) => {
                 // 生成不重疊的隨機位置
@@ -836,7 +850,7 @@
                 img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
                 img.setAttribute("rotation", "-90 0 0");
                 img.setAttribute("scale", "1.4 1.4 1.4");
-                img.setAttribute("class", "clickable");
+                img.setAttribute("class", clickableClass);
                 img.setAttribute("gesture-handler", "");
                 // 移除透明外框：設置材質屬性
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
@@ -876,18 +890,26 @@
                     }, 100);
                 });
 
-                // 存儲圖片數據到動畫系統
-                ImageAnimationSystem.images.push({
+                // 存儲圖片數據
+                const imageData = {
                     entity: img,
                     position: { ...position },
-                    velocity: velocity
-                });
+                    velocity: velocity,
+                    markerId: markerId
+                };
+                ImageAnimationSystem.images.push(imageData);
+                markerImages.push(imageData);
             });
 
             // 使用 AR.js 正確的事件監聽 marker 檢測
             marker.addEventListener("markerFound", function() {
-                // 第一次偵測到 marker 時，顯示圖片並開始動畫
-                showAllImages();
+                // 顯示此 marker 的圖片並開始動畫
+                markerImages.forEach(imageData => {
+                    if (imageData.entity && imageData.entity.object3D) {
+                        imageData.entity.object3D.visible = true;
+                    }
+                });
+                ImageAnimationSystem.start();
             });
 
             // 不再在 markerLost 時隱藏圖片，確保圖片一旦顯示就會一直保持
@@ -1167,7 +1189,10 @@
             }
 
             if (document.readyState === "complete") {
-                injectImagesIntoMarker();
+                // 第一個 marker：顯示 5 張圖片
+                injectImagesIntoMarker("animated-marker", 5, "clickable");
+                // 第二個 marker：顯示 3 張圖片
+                injectImagesIntoMarker("animated-marker2", 3, "clickable2");
                 setupCapture();
                 setupLocationButton();
                 setupRiddleButton();
@@ -1175,7 +1200,10 @@
                 setupInfoModal();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
-                    injectImagesIntoMarker();
+                    // 第一個 marker：顯示 5 張圖片
+                    injectImagesIntoMarker("animated-marker", 5, "clickable");
+                    // 第二個 marker：顯示 3 張圖片
+                    injectImagesIntoMarker("animated-marker2", 3, "clickable2");
                     setupCapture();
                     setupLocationButton();
                     setupRiddleButton();

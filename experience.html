@@ -524,6 +524,118 @@
             margin-left: 0 !important;
             top: 0 !important;
         }
+
+        /* 調試面板樣式 */
+        .debug-panel {
+            position: fixed;
+            bottom: 80px;
+            left: 10px;
+            right: 10px;
+            max-height: 40vh;
+            background: rgba(0, 0, 0, 0.85);
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+            pointer-events: auto;
+            border: 2px solid #0f0;
+            box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .debug-panel.active {
+            display: block;
+        }
+
+        .debug-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #0f0;
+        }
+
+        .debug-panel-title {
+            font-weight: bold;
+            color: #0f0;
+            font-size: 12px;
+        }
+
+        .debug-panel-toggle {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .debug-panel-close {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #f00;
+            color: #f00;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .debug-log {
+            margin: 4px 0;
+            padding: 4px;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .debug-log.error {
+            color: #f00;
+        }
+
+        .debug-log.warn {
+            color: #ff0;
+        }
+
+        .debug-log.info {
+            color: #0ff;
+        }
+
+        .debug-toggle-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #0f0;
+            border: 2px solid #0f0;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 2001;
+            pointer-events: auto;
+            box-shadow: 0 4px 12px rgba(0, 255, 0, 0.3);
+        }
+
+        @media (max-width: 640px) {
+            .debug-panel {
+                font-size: 10px;
+                bottom: 70px;
+            }
+
+            .debug-toggle-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -585,6 +697,19 @@
         </div>
     </div>
 
+    <!-- 調試面板 -->
+    <button id="debug-toggle-btn" class="debug-toggle-btn" title="顯示/隱藏調試面板">🐛</button>
+    <div id="debug-panel" class="debug-panel">
+        <div class="debug-panel-header">
+            <div class="debug-panel-title">調試日誌</div>
+            <div>
+                <button class="debug-panel-toggle" onclick="clearDebugLog()">清除</button>
+                <button class="debug-panel-close" onclick="toggleDebugPanel()">關閉</button>
+            </div>
+        </div>
+        <div id="debug-log-content"></div>
+    </div>
+
     <!-- 預覽大圖模态框 -->
     <div id="preview-modal" class="preview-modal">
         <div class="preview-modal-content">
@@ -623,7 +748,91 @@
     </div>
 
     <script>
-        // 猜燈謎題庫
+        // ========== 調試面板功能 ==========
+        let debugLogs = [];
+        const MAX_DEBUG_LOGS = 100;
+
+        function addDebugLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            debugLogs.push({
+                time: timestamp,
+                message: String(message),
+                type: type
+            });
+
+            // 限制日誌數量
+            if (debugLogs.length > MAX_DEBUG_LOGS) {
+                debugLogs.shift();
+            }
+
+            // 更新顯示
+            updateDebugPanel();
+        }
+
+        function updateDebugPanel() {
+            const logContent = document.getElementById('debug-log-content');
+            if (!logContent) return;
+
+            logContent.innerHTML = debugLogs.map(log => {
+                const typeClass = log.type === 'error' ? 'error' : 
+                                 log.type === 'warn' ? 'warn' : 
+                                 log.type === 'info' ? 'info' : '';
+                return `<div class="debug-log ${typeClass}">[${log.time}] ${log.message}</div>`;
+            }).join('');
+
+            // 自動滾動到底部
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debug-panel');
+            if (panel) {
+                panel.classList.toggle('active');
+            }
+        }
+
+        function clearDebugLog() {
+            debugLogs = [];
+            updateDebugPanel();
+        }
+
+        // 攔截 console 方法
+        (function() {
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            const originalInfo = console.info;
+
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                addDebugLog(args.join(' '), 'log');
+            };
+
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                addDebugLog(args.join(' '), 'warn');
+            };
+
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                addDebugLog(args.join(' '), 'error');
+            };
+
+            console.info = function(...args) {
+                originalInfo.apply(console, args);
+                addDebugLog(args.join(' '), 'info');
+            };
+        })();
+
+        // 設置調試面板切換按鈕
+        window.addEventListener('load', function() {
+            const toggleBtn = document.getElementById('debug-toggle-btn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleDebugPanel);
+            }
+        });
+
+        // ========== 猜燈謎題庫 ==========
         const RIDDLES = [
             {
                 id: 1,
@@ -946,12 +1155,46 @@
 
         // 顯示第二個 marker 的所有圖片並啟動動畫
         function showAllImages2() {
-            ImageAnimationSystem2.images.forEach(imageData => {
-                if (imageData.entity && imageData.entity.object3D) {
+            console.log("showAllImages2 被調用，圖片數量:", ImageAnimationSystem2.images.length);
+            let visibleCount = 0;
+            ImageAnimationSystem2.images.forEach((imageData, index) => {
+                if (imageData.entity) {
+                    // 確保實體已經添加到場景中
+                    if (!imageData.entity.parentNode) {
+                        console.warn(`圖片 ${index + 1} 尚未添加到場景`);
+                        return;
+                    }
+
+                    // 如果 object3D 還沒初始化，等待一下
+                    if (!imageData.entity.object3D) {
+                        console.warn(`圖片 ${index + 1} 的 object3D 尚未初始化，等待初始化...`);
+                        setTimeout(() => {
+                            if (imageData.entity.object3D) {
+                                imageData.entity.object3D.visible = true;
+                                console.log(`圖片 ${index + 1} 延遲設為可見`);
+                            }
+                        }, 200);
+                        return;
+                    }
+
                     imageData.entity.object3D.visible = true;
+                    visibleCount++;
+                    console.log(`圖片 ${index + 1} 已設為可見`);
+                } else {
+                    console.warn(`圖片 ${index + 1} 的 entity 不存在`);
                 }
             });
-            ImageAnimationSystem2.start();
+            console.log(`共顯示 ${visibleCount} 張圖片`);
+            
+            // 如果沒有圖片立即顯示，等待一下再試
+            if (visibleCount === 0 && ImageAnimationSystem2.images.length > 0) {
+                console.log("沒有圖片立即顯示，等待 500ms 後重試...");
+                setTimeout(() => {
+                    showAllImages2();
+                }, 500);
+            } else {
+                ImageAnimationSystem2.start();
+            }
         }
 
         // 隱藏第二個 marker 的所有圖片並停止動畫
@@ -1045,12 +1288,31 @@
         }
 
         function injectImagesIntoMarker2() {
-            const marker = document.getElementById("animated-marker-2");
-            if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
+            console.log("開始初始化 Marker2...");
+            const scene = document.querySelector("a-scene");
+            if (!scene) {
+                console.warn("A-Frame scene 尚未載入，等待載入...");
+                setTimeout(injectImagesIntoMarker2, 100);
                 return;
             }
+            console.log("A-Frame scene 已找到");
+
+            const marker = document.getElementById("animated-marker-2");
+            if (!marker) {
+                console.warn("找不到 animated-marker-2，等待...");
+                setTimeout(injectImagesIntoMarker2, 100);
+                return;
+            }
+            console.log("Marker2 元素已找到:", marker);
+
+            if (!IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
+                console.warn("IMAGE_CONFIG 尚未初始化");
+                return;
+            }
+            console.log("IMAGE_CONFIG 已初始化，圖片數量:", IMAGE_CONFIG.images.length);
 
             const images = pickRandomImages(IMAGE_CONFIG.images, 3); // 第二個 marker 顯示 3 張圖片
+            console.log("Marker2 將顯示以下圖片:", images);
             const existingPositions = [];
 
             images.forEach((src, index) => {
@@ -1116,11 +1378,33 @@
             });
 
             // 使用 AR.js 正確的事件監聽 marker 檢測
-            marker.addEventListener("markerFound", function() {
-                // 第一次偵測到 marker 時，顯示圖片並開始動畫
-                showAllImages2();
-            });
+            // 確保事件監聽器在 A-Frame 完全初始化後綁定
+            function attachMarker2Events() {
+                if (marker && marker.hasLoaded) {
+                    marker.addEventListener("markerFound", function() {
+                        console.log("Marker2 被偵測到！顯示圖片...");
+                        // 第一次偵測到 marker 時，顯示圖片並開始動畫
+                        showAllImages2();
+                    });
 
+                    marker.addEventListener("markerLost", function() {
+                        console.log("Marker2 失去追蹤");
+                    });
+                    console.log("Marker2 事件監聽器已綁定");
+                } else {
+                    // 如果 marker 還沒加載，等待一下再試
+                    setTimeout(attachMarker2Events, 100);
+                }
+            }
+
+            // 等待 marker 加載完成後綁定事件
+            if (marker.hasLoaded) {
+                attachMarker2Events();
+            } else {
+                marker.addEventListener("loaded", attachMarker2Events);
+            }
+
+            console.log("Marker2 圖片注入完成，共", images.length, "張圖片");
             // 不再在 markerLost 時隱藏圖片，確保圖片一旦顯示就會一直保持
         }
 
@@ -1390,31 +1674,43 @@
         }
 
         // 等待 A-Frame 準備完成後進行注入與綁定
-        window.addEventListener("load", function () {
+        function initializeApp() {
             // 進入頁面時隨機選一題燈謎
             if (Array.isArray(RIDDLES) && RIDDLES.length > 0) {
                 const idx = Math.floor(Math.random() * RIDDLES.length);
                 currentRiddle = RIDDLES[idx];
             }
 
-            if (document.readyState === "complete") {
-                injectImagesIntoMarker();
-                injectImagesIntoMarker2();
-                setupCapture();
-                setupLocationButton();
-                setupRiddleButton();
-                setupPreviewModal();
-                setupInfoModal();
+            injectImagesIntoMarker();
+            injectImagesIntoMarker2();
+            setupCapture();
+            setupLocationButton();
+            setupRiddleButton();
+            setupPreviewModal();
+            setupInfoModal();
+        }
+
+        window.addEventListener("load", function () {
+            const scene = document.querySelector("a-scene");
+            if (scene && scene.hasLoaded) {
+                initializeApp();
+            } else if (scene) {
+                scene.addEventListener("loaded", initializeApp);
             } else {
-                window.addEventListener("DOMContentLoaded", function () {
-                    injectImagesIntoMarker();
-                    injectImagesIntoMarker2();
-                    setupCapture();
-                    setupLocationButton();
-                    setupRiddleButton();
-                    setupPreviewModal();
-                    setupInfoModal();
-                });
+                // 如果場景還沒創建，等待一下再試
+                setTimeout(function() {
+                    const scene = document.querySelector("a-scene");
+                    if (scene) {
+                        if (scene.hasLoaded) {
+                            initializeApp();
+                        } else {
+                            scene.addEventListener("loaded", initializeApp);
+                        }
+                    } else {
+                        console.warn("無法找到 a-scene，直接初始化");
+                        initializeApp();
+                    }
+                }, 500);
             }
         });
 

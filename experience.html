@@ -538,7 +538,6 @@
         <!-- 資產將由 JavaScript 依 JSON 動態注入，不再於此處直接配置 <a-asset-item> 模型 -->
         <a-assets id="dynamic-assets"></a-assets>
 
-        <!-- 多個 a-marker：每個用不同 url 辨識不同圖卡 -->
         <a-marker
             id="animated-marker"
             type="pattern"
@@ -548,27 +547,7 @@
             emitevents="true"
             cursor="fuse: false; rayOrigin: mouse;"
         >
-            <!-- a-image 會在執行時由 JS 動態插入至此 -->
-        </a-marker>
-        <a-marker
-            id="marker-2"
-            type="pattern"
-            preset="custom"
-            url="assets/marker2.patt"
-            raycaster="objects: .clickable"
-            emitevents="true"
-            cursor="fuse: false; rayOrigin: mouse;"
-        >
-        </a-marker>
-        <a-marker
-            id="marker-3"
-            type="pattern"
-            preset="custom"
-            url="assets/marker3.patt"
-            raycaster="objects: .clickable"
-            emitevents="true"
-            cursor="fuse: false; rayOrigin: mouse;"
-        >
+            <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
         </a-marker>
 
         <a-entity camera></a-entity>
@@ -814,12 +793,10 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
-        // 顯示圖片並啟動動畫；若傳入 markerEl 則只顯示該 marker 內的圖片
-        function showAllImages(markerEl) {
+        // 顯示所有圖片並啟動動畫
+        function showAllImages() {
             ImageAnimationSystem.images.forEach(imageData => {
-                if (!imageData.entity || !imageData.entity.object3D) return;
-                const belongsToMarker = !markerEl || imageData.entity.parentElement === markerEl;
-                if (belongsToMarker) {
+                if (imageData.entity && imageData.entity.object3D) {
                     imageData.entity.object3D.visible = true;
                 }
             });
@@ -836,8 +813,8 @@
             ImageAnimationSystem.stop();
         }
 
-        // 對單一 marker 注入圖片並綁定 markerFound
-        function injectImagesIntoMarker(marker) {
+        function injectImagesIntoMarker() {
+            const marker = document.getElementById("animated-marker");
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
                 return;
             }
@@ -846,10 +823,14 @@
             const existingPositions = [];
 
             images.forEach((src, index) => {
+                // 生成不重疊的隨機位置
                 const position = ImageAnimationSystem.generateRandomPosition(existingPositions);
                 existingPositions.push({ ...position });
+
+                // 生成隨機速度
                 const velocity = ImageAnimationSystem.generateRandomVelocity();
 
+                // 創建圖片實體
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
@@ -857,37 +838,45 @@
                 img.setAttribute("scale", "1.4 1.4 1.4");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
+                // 移除透明外框：設置材質屬性
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
 
                 marker.appendChild(img);
 
+                // 初始狀態：隱藏圖片
                 if (img.object3D) {
                     img.object3D.visible = false;
                 }
 
+                // 圖片加載後移除透明外框
                 img.addEventListener("loaded", function() {
                     setTimeout(() => {
                         const mesh = img.object3D.children[0];
                         if (mesh && mesh.material) {
+                            // 確保材質不透明且無邊框
                             mesh.material.transparent = false;
                             mesh.material.opacity = 1;
-                            mesh.material.alphaTest = 0.1;
+                            mesh.material.alphaTest = 0.1; // 降低 alphaTest 值以移除透明邊緣
                             mesh.material.depthWrite = true;
+                            // 使用 A-Frame 的 THREE 引用
                             const THREE = AFRAME.THREE;
                             if (THREE) {
                                 mesh.material.side = THREE.DoubleSide;
                             }
+                            // 移除任何可能導致邊框的屬性
                             if (mesh.material.map) {
                                 mesh.material.map.flipY = false;
                             }
                             mesh.material.needsUpdate = true;
                         }
+                        // 確保初始狀態為隱藏
                         if (img.object3D) {
                             img.object3D.visible = false;
                         }
                     }, 100);
                 });
 
+                // 存儲圖片數據到動畫系統
                 ImageAnimationSystem.images.push({
                     entity: img,
                     position: { ...position },
@@ -895,17 +884,13 @@
                 });
             });
 
+            // 使用 AR.js 正確的事件監聽 marker 檢測
             marker.addEventListener("markerFound", function() {
-                showAllImages(marker);
+                // 第一次偵測到 marker 時，顯示圖片並開始動畫
+                showAllImages();
             });
-        }
 
-        // 對所有 a-marker 注入圖片（每個 marker 用不同 url 辨識不同圖卡）
-        function injectImagesIntoAllMarkers() {
-            const markers = document.querySelectorAll("a-marker");
-            markers.forEach(function(marker) {
-                injectImagesIntoMarker(marker);
-            });
+            // 不再在 markerLost 時隱藏圖片，確保圖片一旦顯示就會一直保持
         }
 
         // 保存當前截圖的 blob 和 URL
@@ -1182,7 +1167,7 @@
             }
 
             if (document.readyState === "complete") {
-                injectImagesIntoAllMarkers();
+                injectImagesIntoMarker();
                 setupCapture();
                 setupLocationButton();
                 setupRiddleButton();
@@ -1190,7 +1175,7 @@
                 setupInfoModal();
             } else {
                 window.addEventListener("DOMContentLoaded", function () {
-                    injectImagesIntoAllMarkers();
+                    injectImagesIntoMarker();
                     setupCapture();
                     setupLocationButton();
                     setupRiddleButton();

@@ -318,6 +318,7 @@
             line-height: 1.6;
             margin: 0;
             text-align: center;
+            white-space: pre-line;
         }
 
         .info-modal-actions {
@@ -554,7 +555,7 @@
             id="marker-2"
             type="pattern"
             preset="custom"
-            url="assets/marker2.patt"
+            url="assets/marker4.patt"
             raycaster="objects: .clickable"
             emitevents="true"
             cursor="fuse: false; rayOrigin: mouse;"
@@ -565,6 +566,46 @@
             type="pattern"
             preset="custom"
             url="assets/marker3.patt"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+        >
+        </a-marker>
+        <a-marker
+            id="marker-6"
+            type="pattern"
+            preset="custom"
+            url="assets/marker6.patt"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+        >
+        </a-marker>
+        <a-marker
+            id="marker-7"
+            type="pattern"
+            preset="custom"
+            url="assets/marker7.patt"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+        >
+        </a-marker>
+        <a-marker
+            id="marker-8"
+            type="pattern"
+            preset="custom"
+            url="assets/marker8.patt"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+        >
+        </a-marker>
+        <a-marker
+            id="marker-9"
+            type="pattern"
+            preset="custom"
+            url="assets/marker9.patt"
             raycaster="objects: .clickable"
             emitevents="true"
             cursor="fuse: false; rayOrigin: mouse;"
@@ -667,6 +708,17 @@
         ];
 
         let currentRiddle = null;
+
+        // 每個 marker 對應一個位置文字（位置1~7）
+        const MARKER_LOCATIONS = {
+            "animated-marker": { title: "位置1", text: "您正在查看 位置1。（掃描 marker.patt 圖卡）" },
+            "marker-2": { title: "位置2", text: "您正在查看 位置2。（掃描 marker4.patt 圖卡）" },
+            "marker-3": { title: "位置3", text: "您正在查看 位置3。（掃描 marker3.patt 圖卡）" },
+            "marker-6": { title: "位置4", text: "您正在查看 位置4。（掃描 marker6.patt 圖卡）" },
+            "marker-7": { title: "位置5", text: "您正在查看 位置5。（掃描 marker7.patt 圖卡）" },
+            "marker-8": { title: "位置6", text: "您正在查看 位置6。（掃描 marker8.patt 圖卡）" },
+            "marker-9": { title: "位置7", text: "您正在查看 位置7。（掃描 marker9.patt 圖卡）" }
+        };
 
         // 根據命名規則自動產生圖片列表：img (1).png ~ img (654).png
         const IMAGE_CONFIG = {
@@ -896,6 +948,10 @@
 
             marker.addEventListener("markerFound", function() {
                 showAllImages(marker);
+                const loc = MARKER_LOCATIONS[marker.id];
+                if (loc) {
+                    showInfoModal(loc.title, loc.text);
+                }
             });
         }
 
@@ -1044,8 +1100,16 @@
             const locationBtn = document.getElementById("location-btn");
             if (locationBtn) {
                 locationBtn.addEventListener("click", function () {
-                    // 使用非阻塞的模态框替代 alert
-                    showInfoModal("位置介紹", "這裡可以添加位置介紹的詳細內容。");
+                    const lines = [
+                        "位置1：掃描 marker.patt 圖卡",
+                        "位置2：掃描 marker4.patt 圖卡",
+                        "位置3：掃描 marker3.patt 圖卡",
+                        "位置4：掃描 marker6.patt 圖卡",
+                        "位置5：掃描 marker7.patt 圖卡",
+                        "位置6：掃描 marker8.patt 圖卡",
+                        "位置7：掃描 marker9.patt 圖卡"
+                    ];
+                    showInfoModal("位置介紹", lines.join("\n"));
                 });
             }
         }

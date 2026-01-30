@@ -1084,13 +1084,16 @@
             // 動畫循環
             animate() {
                 if (!this.isRunning) return;
-
+                // 彌補 AR.js markersAreaEnabled 錯誤：每幀強制 Marker2 與其子物件可見
+                if (window.__marker2Found) {
+                    const m2 = document.getElementById("animated-marker-2");
+                    if (m2 && m2.object3D) m2.object3D.visible = true;
+                }
                 this.images.forEach(imageData => {
                     if (imageData.entity && imageData.entity.object3D.visible) {
                         this.updateImage(imageData);
                     }
                 });
-
                 this.animationId = requestAnimationFrame(() => this.animate());
             },
 
@@ -1390,8 +1393,11 @@
                     marker.addEventListener("markerFound", function() {
                         window.__marker2Found = true;
                         console.log("Marker2 被偵測到！顯示圖片...");
+                        // 強制顯示 marker 的 object3D（彌補 AR.js markersAreaEnabled 錯誤可能造成的隱藏）
+                        if (marker.object3D) marker.object3D.visible = true;
                         // 延遲一幀執行，確保 AR.js 已更新 marker 的 transform
                         requestAnimationFrame(function() {
+                            if (marker.object3D) marker.object3D.visible = true;
                             showAllImages2();
                         });
                     });

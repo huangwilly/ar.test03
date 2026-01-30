@@ -1157,41 +1157,46 @@
         function showAllImages2() {
             console.log("showAllImages2 被調用，圖片數量:", ImageAnimationSystem2.images.length);
             let visibleCount = 0;
+            const sceneEl = document.querySelector("a-scene");
             ImageAnimationSystem2.images.forEach((imageData, index) => {
                 if (imageData.entity) {
                     // 確保實體已經添加到場景中
                     if (!imageData.entity.parentNode) {
-                        console.warn(`圖片 ${index + 1} 尚未添加到場景`);
+                        console.warn(`Marker2 圖片 ${index + 1} 尚未添加到場景`);
                         return;
                     }
 
                     // 如果 object3D 還沒初始化，等待一下
                     if (!imageData.entity.object3D) {
-                        console.warn(`圖片 ${index + 1} 的 object3D 尚未初始化，等待初始化...`);
+                        console.warn(`Marker2 圖片 ${index + 1} 的 object3D 尚未初始化，等待初始化...`);
                         setTimeout(() => {
                             if (imageData.entity.object3D) {
                                 imageData.entity.object3D.visible = true;
-                                console.log(`圖片 ${index + 1} 延遲設為可見`);
+                                imageData.entity.object3D.updateMatrixWorld(true);
+                                console.log(`Marker2 圖片 ${index + 1} 延遲設為可見`);
                             }
                         }, 200);
                         return;
                     }
 
                     imageData.entity.object3D.visible = true;
+                    imageData.entity.object3D.updateMatrixWorld(true);
                     visibleCount++;
-                    console.log(`圖片 ${index + 1} 已設為可見`);
+                    console.log(`Marker2 圖片 ${index + 1} 已設為可見`);
                 } else {
-                    console.warn(`圖片 ${index + 1} 的 entity 不存在`);
+                    console.warn(`Marker2 圖片 ${index + 1} 的 entity 不存在`);
                 }
             });
-            console.log(`共顯示 ${visibleCount} 張圖片`);
+            if (sceneEl && sceneEl.object3D) {
+                sceneEl.object3D.updateMatrixWorld(true);
+            }
+            console.log(`Marker2 共顯示 ${visibleCount} 張圖片`);
             
-            // 如果沒有圖片立即顯示，等待一下再試
+            // 如果沒有圖片立即顯示，等待一下再試（可能 A-Frame 尚未完成初始化子實體）
             if (visibleCount === 0 && ImageAnimationSystem2.images.length > 0) {
-                console.log("沒有圖片立即顯示，等待 500ms 後重試...");
-                setTimeout(() => {
-                    showAllImages2();
-                }, 500);
+                console.log("Marker2 沒有圖片立即顯示，將在 300ms 與 600ms 後重試...");
+                setTimeout(() => showAllImages2(), 300);
+                setTimeout(() => showAllImages2(), 600);
             } else {
                 ImageAnimationSystem2.start();
             }
@@ -1288,6 +1293,7 @@
         }
 
         function injectImagesIntoMarker2() {
+            window.__marker2Found = false;
             console.log("開始初始化 Marker2...");
             const scene = document.querySelector("a-scene");
             if (!scene) {
@@ -1344,7 +1350,7 @@
                 // 圖片加載後移除透明外框
                 img.addEventListener("loaded", function() {
                     setTimeout(() => {
-                        const mesh = img.object3D.children[0];
+                        const mesh = img.object3D && img.object3D.children[0];
                         if (mesh && mesh.material) {
                             // 確保材質不透明且無邊框
                             mesh.material.transparent = false;
@@ -1362,8 +1368,8 @@
                             }
                             mesh.material.needsUpdate = true;
                         }
-                        // 確保初始狀態為隱藏
-                        if (img.object3D) {
+                        // 僅在 Marker2 尚未被偵測時隱藏，避免覆蓋 markerFound 後的顯示
+                        if (img.object3D && !window.__marker2Found) {
                             img.object3D.visible = false;
                         }
                     }, 100);
@@ -1382,15 +1388,19 @@
             function attachMarker2Events() {
                 if (marker && marker.hasLoaded) {
                     marker.addEventListener("markerFound", function() {
+                        window.__marker2Found = true;
                         console.log("Marker2 被偵測到！顯示圖片...");
-                        // 第一次偵測到 marker 時，顯示圖片並開始動畫
-                        showAllImages2();
+                        // 延遲一幀執行，確保 AR.js 已更新 marker 的 transform
+                        requestAnimationFrame(function() {
+                            showAllImages2();
+                        });
                     });
 
                     marker.addEventListener("markerLost", function() {
                         console.log("Marker2 失去追蹤");
+                        // 可選：不再重置 __marker2Found，讓圖片保持顯示
                     });
-                    console.log("Marker2 事件監聽器已綁定");
+                    console.log("Marker2 事件監聽器已綁定（請將鏡頭對準 marker2.patt 圖卡以顯示圖片）");
                 } else {
                     // 如果 marker 還沒加載，等待一下再試
                     setTimeout(attachMarker2Events, 100);

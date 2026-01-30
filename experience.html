@@ -703,6 +703,7 @@
         <div class="debug-panel-header">
             <div class="debug-panel-title">調試日誌</div>
             <div>
+                <button class="debug-panel-toggle" onclick="testMarker2Display()" title="強制顯示 Marker2 圖片（測試用）">測試 M2</button>
                 <button class="debug-panel-toggle" onclick="clearDebugLog()">清除</button>
                 <button class="debug-panel-close" onclick="toggleDebugPanel()">關閉</button>
             </div>
@@ -1084,10 +1085,20 @@
             // 動畫循環
             animate() {
                 if (!this.isRunning) return;
-                // 彌補 AR.js markersAreaEnabled 錯誤：每幀強制 Marker2 與其子物件可見
-                if (window.__marker2Found) {
+                // Marker2 內容在獨立 wrapper 中：每幀從 marker 複製變換（非測試模式時）
+                if (window.__marker2Found && !window.__marker2TestMode) {
                     const m2 = document.getElementById("animated-marker-2");
-                    if (m2 && m2.object3D) m2.object3D.visible = true;
+                    const wrap = window.__marker2ContentWrapper;
+                    if (m2 && m2.object3D && wrap && wrap.object3D) {
+                        const THREE = AFRAME.THREE;
+                        const pos = new THREE.Vector3();
+                        const quat = new THREE.Quaternion();
+                        const scale = new THREE.Vector3();
+                        m2.object3D.matrixWorld.decompose(pos, quat, scale);
+                        wrap.object3D.position.copy(pos);
+                        wrap.object3D.quaternion.copy(quat);
+                        wrap.object3D.scale.copy(scale);
+                    }
                 }
                 this.images.forEach(imageData => {
                     if (imageData.entity && imageData.entity.object3D.visible) {
@@ -1215,6 +1226,22 @@
             ImageAnimationSystem2.stop();
         }
 
+        // 測試用：強制顯示 Marker2 圖片（不依賴 marker 偵測），確認圖片能否正常顯示
+        function testMarker2Display() {
+            if (!window.__marker2ContentWrapper || ImageAnimationSystem2.images.length === 0) {
+                console.warn("Marker2 尚未初始化或無圖片，請稍後再試");
+                return;
+            }
+            window.__marker2Found = true;
+            window.__marker2TestMode = true;  // 不從 marker 同步變換，保持固定位置
+            var wrap = window.__marker2ContentWrapper;
+            wrap.setAttribute("position", "0 0 -1.5");
+            wrap.setAttribute("rotation", "0 0 0");
+            wrap.setAttribute("scale", "1 1 1");
+            console.log("測試 M2：強制顯示 Marker2 圖片（鏡頭前方）");
+            showAllImages2();
+        }
+
         function injectImagesIntoMarker() {
             const marker = document.getElementById("animated-marker");
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
@@ -1297,6 +1324,7 @@
 
         function injectImagesIntoMarker2() {
             window.__marker2Found = false;
+            window.__marker2TestMode = false;
             console.log("開始初始化 Marker2...");
             const scene = document.querySelector("a-scene");
             if (!scene) {
@@ -1324,6 +1352,17 @@
             console.log("Marker2 將顯示以下圖片:", images);
             const existingPositions = [];
 
+            // 建立獨立的內容容器（掛在 scene 下），不依賴 marker 的顯示，避開 AR.js markersAreaEnabled 問題
+            let wrapper = document.getElementById("marker2-content-wrapper");
+            if (!wrapper) {
+                wrapper = document.createElement("a-entity");
+                wrapper.setAttribute("id", "marker2-content-wrapper");
+                wrapper.setAttribute("visible", "true");
+                scene.appendChild(wrapper);
+                console.log("Marker2 內容容器已建立（掛在 scene 下）");
+            }
+            window.__marker2ContentWrapper = wrapper;
+
             images.forEach((src, index) => {
                 // 生成不重疊的隨機位置
                 const position = ImageAnimationSystem2.generateRandomPosition(existingPositions);
@@ -1343,7 +1382,7 @@
                 // 移除透明外框：設置材質屬性
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
 
-                marker.appendChild(img);
+                wrapper.appendChild(img);
 
                 // 初始狀態：隱藏圖片
                 if (img.object3D) {
@@ -1392,12 +1431,19 @@
                 if (marker && marker.hasLoaded) {
                     marker.addEventListener("markerFound", function() {
                         window.__marker2Found = true;
+                        window.__marker2TestMode = false;  // 真實偵測到 marker，從 marker 同步變換
                         console.log("Marker2 被偵測到！顯示圖片...");
-                        // 強制顯示 marker 的 object3D（彌補 AR.js markersAreaEnabled 錯誤可能造成的隱藏）
-                        if (marker.object3D) marker.object3D.visible = true;
-                        // 延遲一幀執行，確保 AR.js 已更新 marker 的 transform
+                        // 內容在獨立 wrapper 中：立即同步 wrapper 變換（不依賴 marker 的顯示）
+                        var wrap = window.__marker2ContentWrapper;
+                        if (marker.object3D && wrap && wrap.object3D && typeof AFRAME !== "undefined" && AFRAME.THREE) {
+                            var THREE = AFRAME.THREE;
+                            var pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scale = new THREE.Vector3();
+                            marker.object3D.matrixWorld.decompose(pos, quat, scale);
+                            wrap.object3D.position.copy(pos);
+                            wrap.object3D.quaternion.copy(quat);
+                            wrap.object3D.scale.copy(scale);
+                        }
                         requestAnimationFrame(function() {
-                            if (marker.object3D) marker.object3D.visible = true;
                             showAllImages2();
                         });
                     });

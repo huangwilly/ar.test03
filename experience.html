@@ -845,11 +845,12 @@
         };
 
         (function fillImageConfig() {
-            // 如果圖片都放在 assets 資料夾，副檔名為 .png
+            // 如果圖片都放在 assets 資料夾，副檔名為 .png，檔名格式：img (1).png, img (2).png ...
+            // 增加圖片時：把新檔放入 assets，然後把 totalCount 改成「總張數」
             const basePath = "assets/";
             const prefix = "img (";
             const suffix = ").png";
-            const totalCount = 40;
+            const totalCount = 150;  // 改成你的實際總張數（例如 100、200）
 
             for (let i = 1; i <= totalCount; i++) {
                 IMAGE_CONFIG.images.push(`${basePath}${prefix}${i}${suffix}`);

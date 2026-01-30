@@ -524,118 +524,6 @@
             margin-left: 0 !important;
             top: 0 !important;
         }
-
-        /* 調試面板樣式 */
-        .debug-panel {
-            position: fixed;
-            bottom: 80px;
-            left: 10px;
-            right: 10px;
-            max-height: 40vh;
-            background: rgba(0, 0, 0, 0.85);
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            padding: 10px;
-            border-radius: 8px;
-            overflow-y: auto;
-            z-index: 2000;
-            display: none;
-            pointer-events: auto;
-            border: 2px solid #0f0;
-            box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
-        }
-
-        .debug-panel.active {
-            display: block;
-        }
-
-        .debug-panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #0f0;
-        }
-
-        .debug-panel-title {
-            font-weight: bold;
-            color: #0f0;
-            font-size: 12px;
-        }
-
-        .debug-panel-toggle {
-            background: rgba(0, 255, 0, 0.2);
-            border: 1px solid #0f0;
-            color: #0f0;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            cursor: pointer;
-        }
-
-        .debug-panel-close {
-            background: rgba(255, 0, 0, 0.2);
-            border: 1px solid #f00;
-            color: #f00;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            cursor: pointer;
-        }
-
-        .debug-log {
-            margin: 4px 0;
-            padding: 4px;
-            word-break: break-word;
-            line-height: 1.4;
-        }
-
-        .debug-log.error {
-            color: #f00;
-        }
-
-        .debug-log.warn {
-            color: #ff0;
-        }
-
-        .debug-log.info {
-            color: #0ff;
-        }
-
-        .debug-toggle-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #0f0;
-            border: 2px solid #0f0;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 2001;
-            pointer-events: auto;
-            box-shadow: 0 4px 12px rgba(0, 255, 0, 0.3);
-        }
-
-        @media (max-width: 640px) {
-            .debug-panel {
-                font-size: 10px;
-                bottom: 70px;
-            }
-
-            .debug-toggle-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 18px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -650,6 +538,7 @@
         <!-- 資產將由 JavaScript 依 JSON 動態注入，不再於此處直接配置 <a-asset-item> 模型 -->
         <a-assets id="dynamic-assets"></a-assets>
 
+        <!-- 多個 a-marker：每個用不同 url 辨識不同圖卡 -->
         <a-marker
             id="animated-marker"
             type="pattern"
@@ -659,19 +548,27 @@
             emitevents="true"
             cursor="fuse: false; rayOrigin: mouse;"
         >
-            <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable 與 gesture-handler -->
+            <!-- a-image 會在執行時由 JS 動態插入至此 -->
         </a-marker>
-
         <a-marker
-            id="animated-marker-2"
+            id="marker-2"
             type="pattern"
             preset="custom"
             url="assets/marker2.patt"
-            raycaster="objects: .clickable-2"
+            raycaster="objects: .clickable"
             emitevents="true"
             cursor="fuse: false; rayOrigin: mouse;"
         >
-            <!-- a-image 會在執行時由 JS 動態插入至此，並標記為 .clickable-2 與 gesture-handler -->
+        </a-marker>
+        <a-marker
+            id="marker-3"
+            type="pattern"
+            preset="custom"
+            url="assets/marker3.patt"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            cursor="fuse: false; rayOrigin: mouse;"
+        >
         </a-marker>
 
         <a-entity camera></a-entity>
@@ -695,19 +592,6 @@
                 猜燈謎
             </button>
         </div>
-    </div>
-
-    <!-- 調試面板 -->
-    <button id="debug-toggle-btn" class="debug-toggle-btn" title="顯示/隱藏調試面板">🐛</button>
-    <div id="debug-panel" class="debug-panel">
-        <div class="debug-panel-header">
-            <div class="debug-panel-title">調試日誌</div>
-            <div>
-                <button class="debug-panel-toggle" onclick="clearDebugLog()">清除</button>
-                <button class="debug-panel-close" onclick="toggleDebugPanel()">關閉</button>
-            </div>
-        </div>
-        <div id="debug-log-content"></div>
     </div>
 
     <!-- 預覽大圖模态框 -->
@@ -748,91 +632,7 @@
     </div>
 
     <script>
-        // ========== 調試面板功能 ==========
-        let debugLogs = [];
-        const MAX_DEBUG_LOGS = 100;
-
-        function addDebugLog(message, type = 'log') {
-            const timestamp = new Date().toLocaleTimeString();
-            debugLogs.push({
-                time: timestamp,
-                message: String(message),
-                type: type
-            });
-
-            // 限制日誌數量
-            if (debugLogs.length > MAX_DEBUG_LOGS) {
-                debugLogs.shift();
-            }
-
-            // 更新顯示
-            updateDebugPanel();
-        }
-
-        function updateDebugPanel() {
-            const logContent = document.getElementById('debug-log-content');
-            if (!logContent) return;
-
-            logContent.innerHTML = debugLogs.map(log => {
-                const typeClass = log.type === 'error' ? 'error' : 
-                                 log.type === 'warn' ? 'warn' : 
-                                 log.type === 'info' ? 'info' : '';
-                return `<div class="debug-log ${typeClass}">[${log.time}] ${log.message}</div>`;
-            }).join('');
-
-            // 自動滾動到底部
-            logContent.scrollTop = logContent.scrollHeight;
-        }
-
-        function toggleDebugPanel() {
-            const panel = document.getElementById('debug-panel');
-            if (panel) {
-                panel.classList.toggle('active');
-            }
-        }
-
-        function clearDebugLog() {
-            debugLogs = [];
-            updateDebugPanel();
-        }
-
-        // 攔截 console 方法
-        (function() {
-            const originalLog = console.log;
-            const originalWarn = console.warn;
-            const originalError = console.error;
-            const originalInfo = console.info;
-
-            console.log = function(...args) {
-                originalLog.apply(console, args);
-                addDebugLog(args.join(' '), 'log');
-            };
-
-            console.warn = function(...args) {
-                originalWarn.apply(console, args);
-                addDebugLog(args.join(' '), 'warn');
-            };
-
-            console.error = function(...args) {
-                originalError.apply(console, args);
-                addDebugLog(args.join(' '), 'error');
-            };
-
-            console.info = function(...args) {
-                originalInfo.apply(console, args);
-                addDebugLog(args.join(' '), 'info');
-            };
-        })();
-
-        // 設置調試面板切換按鈕
-        window.addEventListener('load', function() {
-            const toggleBtn = document.getElementById('debug-toggle-btn');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', toggleDebugPanel);
-            }
-        });
-
-        // ========== 猜燈謎題庫 ==========
+        // 猜燈謎題庫
         const RIDDLES = [
             {
                 id: 1,
@@ -992,123 +792,6 @@
             }
         };
 
-        // 第二個 marker 的圖片動畫系統（範圍縮小，確保 3 張圖都在可見範圍內）
-        const ImageAnimationSystem2 = {
-            images: [], // 存儲所有圖片實體和動畫數據
-            boundary: {
-                minX: -0.55,
-                maxX: 0.55,
-                minY: -0.45,
-                maxY: 0.45,
-                minZ: -0.55,
-                maxZ: 0.55
-            },
-            minDistance: 0.38, // 圖片之間的最小距離（縮小以配合範圍）
-            animationId: null,
-            isRunning: false,
-
-            // 檢查位置是否與現有圖片重疊
-            isPositionValid(newPos, existingPositions) {
-                for (const pos of existingPositions) {
-                    const distance = Math.sqrt(
-                        Math.pow(newPos.x - pos.x, 2) +
-                        Math.pow(newPos.y - pos.y, 2) +
-                        Math.pow(newPos.z - pos.z, 2)
-                    );
-                    if (distance < this.minDistance) {
-                        return false;
-                    }
-                }
-                return true;
-            },
-
-            // 生成隨機位置（不重疊）
-            generateRandomPosition(existingPositions, maxAttempts = 50) {
-                for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                    const pos = {
-                        x: this.boundary.minX + Math.random() * (this.boundary.maxX - this.boundary.minX),
-                        y: this.boundary.minY + Math.random() * (this.boundary.maxY - this.boundary.minY),
-                        z: this.boundary.minZ + Math.random() * (this.boundary.maxZ - this.boundary.minZ)
-                    };
-                    if (this.isPositionValid(pos, existingPositions)) {
-                        return pos;
-                    }
-                }
-                // 如果無法找到不重疊的位置，返回隨機位置
-                return {
-                    x: this.boundary.minX + Math.random() * (this.boundary.maxX - this.boundary.minX),
-                    y: this.boundary.minY + Math.random() * (this.boundary.maxY - this.boundary.minY),
-                    z: this.boundary.minZ + Math.random() * (this.boundary.maxZ - this.boundary.minZ)
-                };
-            },
-
-            // 生成隨機速度
-            generateRandomVelocity() {
-                const speed = 0.01 + Math.random() * 0.02; // 速度範圍 0.01-0.03
-                return {
-                    x: (Math.random() - 0.5) * speed,
-                    y: (Math.random() - 0.5) * speed,
-                    z: (Math.random() - 0.5) * speed
-                };
-            },
-
-            // 更新圖片位置和處理邊界碰撞
-            updateImage(imageData) {
-                const { entity, position, velocity } = imageData;
-
-                // 更新位置
-                position.x += velocity.x;
-                position.y += velocity.y;
-                position.z += velocity.z;
-
-                // 檢查邊界碰撞並反彈
-                if (position.x <= this.boundary.minX || position.x >= this.boundary.maxX) {
-                    velocity.x = -velocity.x * (0.8 + Math.random() * 0.4); // 隨機反彈係數
-                    position.x = Math.max(this.boundary.minX, Math.min(this.boundary.maxX, position.x));
-                }
-                if (position.y <= this.boundary.minY || position.y >= this.boundary.maxY) {
-                    velocity.y = -velocity.y * (0.8 + Math.random() * 0.4);
-                    position.y = Math.max(this.boundary.minY, Math.min(this.boundary.maxY, position.y));
-                }
-                if (position.z <= this.boundary.minZ || position.z >= this.boundary.maxZ) {
-                    velocity.z = -velocity.z * (0.8 + Math.random() * 0.4);
-                    position.z = Math.max(this.boundary.minZ, Math.min(this.boundary.maxZ, position.z));
-                }
-
-                // 更新實體位置
-                if (entity && entity.object3D) {
-                    entity.object3D.position.set(position.x, position.y, position.z);
-                }
-            },
-
-            // 動畫循環（圖片在 marker 底下，隨 marker 移動）
-            animate() {
-                if (!this.isRunning) return;
-                this.images.forEach(imageData => {
-                    if (imageData.entity && imageData.entity.object3D.visible) {
-                        this.updateImage(imageData);
-                    }
-                });
-                this.animationId = requestAnimationFrame(() => this.animate());
-            },
-
-            // 啟動動畫
-            start() {
-                if (this.isRunning) return;
-                this.isRunning = true;
-                this.animate();
-            },
-
-            // 停止動畫
-            stop() {
-                this.isRunning = false;
-                if (this.animationId) {
-                    cancelAnimationFrame(this.animationId);
-                    this.animationId = null;
-                }
-            }
-        };
-
         (function fillImageConfig() {
             // 如果圖片都放在 assets 資料夾，副檔名為 .png
             const basePath = "assets/";
@@ -1131,10 +814,12 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
-        // 顯示所有圖片並啟動動畫
-        function showAllImages() {
+        // 顯示圖片並啟動動畫；若傳入 markerEl 則只顯示該 marker 內的圖片
+        function showAllImages(markerEl) {
             ImageAnimationSystem.images.forEach(imageData => {
-                if (imageData.entity && imageData.entity.object3D) {
+                if (!imageData.entity || !imageData.entity.object3D) return;
+                const belongsToMarker = !markerEl || imageData.entity.parentElement === markerEl;
+                if (belongsToMarker) {
                     imageData.entity.object3D.visible = true;
                 }
             });
@@ -1151,67 +836,8 @@
             ImageAnimationSystem.stop();
         }
 
-        // 顯示第二個 marker 的所有圖片並啟動動畫
-        function showAllImages2() {
-            console.log("showAllImages2 被調用，圖片數量:", ImageAnimationSystem2.images.length);
-            let visibleCount = 0;
-            const sceneEl = document.querySelector("a-scene");
-            ImageAnimationSystem2.images.forEach((imageData, index) => {
-                if (imageData.entity) {
-                    // 確保實體已經添加到場景中
-                    if (!imageData.entity.parentNode) {
-                        console.warn(`Marker2 圖片 ${index + 1} 尚未添加到場景`);
-                        return;
-                    }
-
-                    // 如果 object3D 還沒初始化，等待一下
-                    if (!imageData.entity.object3D) {
-                        console.warn(`Marker2 圖片 ${index + 1} 的 object3D 尚未初始化，等待初始化...`);
-                        setTimeout(() => {
-                            if (imageData.entity.object3D) {
-                                imageData.entity.object3D.visible = true;
-                                imageData.entity.object3D.updateMatrixWorld(true);
-                                console.log(`Marker2 圖片 ${index + 1} 延遲設為可見`);
-                            }
-                        }, 200);
-                        return;
-                    }
-
-                    imageData.entity.object3D.visible = true;
-                    imageData.entity.object3D.updateMatrixWorld(true);
-                    visibleCount++;
-                    console.log(`Marker2 圖片 ${index + 1} 已設為可見`);
-                } else {
-                    console.warn(`Marker2 圖片 ${index + 1} 的 entity 不存在`);
-                }
-            });
-            if (sceneEl && sceneEl.object3D) {
-                sceneEl.object3D.updateMatrixWorld(true);
-            }
-            console.log(`Marker2 共顯示 ${visibleCount} 張圖片`);
-            
-            // 如果沒有圖片立即顯示，等待一下再試（可能 A-Frame 尚未完成初始化子實體）
-            if (visibleCount === 0 && ImageAnimationSystem2.images.length > 0) {
-                console.log("Marker2 沒有圖片立即顯示，將在 300ms 與 600ms 後重試...");
-                setTimeout(() => showAllImages2(), 300);
-                setTimeout(() => showAllImages2(), 600);
-            } else {
-                ImageAnimationSystem2.start();
-            }
-        }
-
-        // 隱藏第二個 marker 的所有圖片並停止動畫
-        function hideAllImages2() {
-            ImageAnimationSystem2.images.forEach(imageData => {
-                if (imageData.entity && imageData.entity.object3D) {
-                    imageData.entity.object3D.visible = false;
-                }
-            });
-            ImageAnimationSystem2.stop();
-        }
-
-        function injectImagesIntoMarker() {
-            const marker = document.getElementById("animated-marker");
+        // 對單一 marker 注入圖片並綁定 markerFound
+        function injectImagesIntoMarker(marker) {
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
                 return;
             }
@@ -1220,14 +846,10 @@
             const existingPositions = [];
 
             images.forEach((src, index) => {
-                // 生成不重疊的隨機位置
                 const position = ImageAnimationSystem.generateRandomPosition(existingPositions);
                 existingPositions.push({ ...position });
-
-                // 生成隨機速度
                 const velocity = ImageAnimationSystem.generateRandomVelocity();
 
-                // 創建圖片實體
                 const img = document.createElement("a-image");
                 img.setAttribute("src", src);
                 img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
@@ -1235,45 +857,37 @@
                 img.setAttribute("scale", "1.4 1.4 1.4");
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
-                // 移除透明外框：設置材質屬性
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
 
                 marker.appendChild(img);
 
-                // 初始狀態：隱藏圖片
                 if (img.object3D) {
                     img.object3D.visible = false;
                 }
 
-                // 圖片加載後移除透明外框
                 img.addEventListener("loaded", function() {
                     setTimeout(() => {
                         const mesh = img.object3D.children[0];
                         if (mesh && mesh.material) {
-                            // 確保材質不透明且無邊框
                             mesh.material.transparent = false;
                             mesh.material.opacity = 1;
-                            mesh.material.alphaTest = 0.1; // 降低 alphaTest 值以移除透明邊緣
+                            mesh.material.alphaTest = 0.1;
                             mesh.material.depthWrite = true;
-                            // 使用 A-Frame 的 THREE 引用
                             const THREE = AFRAME.THREE;
                             if (THREE) {
                                 mesh.material.side = THREE.DoubleSide;
                             }
-                            // 移除任何可能導致邊框的屬性
                             if (mesh.material.map) {
                                 mesh.material.map.flipY = false;
                             }
                             mesh.material.needsUpdate = true;
                         }
-                        // 確保初始狀態為隱藏
                         if (img.object3D) {
                             img.object3D.visible = false;
                         }
                     }, 100);
                 });
 
-                // 存儲圖片數據到動畫系統
                 ImageAnimationSystem.images.push({
                     entity: img,
                     position: { ...position },
@@ -1281,107 +895,17 @@
                 });
             });
 
-            // 使用 AR.js 正確的事件監聽 marker 檢測
             marker.addEventListener("markerFound", function() {
-                // 第一次偵測到 marker 時，顯示圖片並開始動畫
-                showAllImages();
+                showAllImages(marker);
             });
-
-            // 不再在 markerLost 時隱藏圖片，確保圖片一旦顯示就會一直保持
         }
 
-        function injectImagesIntoMarker2() {
-            window.__marker2Found = false;
-            console.log("開始初始化 Marker2...");
-            const scene = document.querySelector("a-scene");
-            if (!scene) {
-                console.warn("A-Frame scene 尚未載入，等待載入...");
-                setTimeout(injectImagesIntoMarker2, 100);
-                return;
-            }
-            console.log("A-Frame scene 已找到");
-
-            const marker = document.getElementById("animated-marker-2");
-            if (!marker) {
-                console.warn("找不到 animated-marker-2，等待...");
-                setTimeout(injectImagesIntoMarker2, 100);
-                return;
-            }
-            console.log("Marker2 元素已找到:", marker);
-
-            if (!IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
-                console.warn("IMAGE_CONFIG 尚未初始化");
-                return;
-            }
-            console.log("IMAGE_CONFIG 已初始化，圖片數量:", IMAGE_CONFIG.images.length);
-
-            const images = pickRandomImages(IMAGE_CONFIG.images, 3); // 第二個 marker 顯示 3 張圖片
-            console.log("Marker2 將顯示以下圖片:", images);
-            const existingPositions = [];
-
-            // 與 ar/index.html 相同：a-image 直接放在 a-marker 底下
-            images.forEach((src, index) => {
-                const position = ImageAnimationSystem2.generateRandomPosition(existingPositions);
-                existingPositions.push({ ...position });
-                const velocity = ImageAnimationSystem2.generateRandomVelocity();
-
-                const img = document.createElement("a-image");
-                img.setAttribute("src", src);
-                img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
-                img.setAttribute("rotation", "-90 0 0");
-                img.setAttribute("scale", "1.4 1.4 1.4");
-                img.setAttribute("class", "clickable-2");
-                img.setAttribute("gesture-handler", "");
-                img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
-
-                marker.appendChild(img);
-
-                img.addEventListener("loaded", function() {
-                    setTimeout(() => {
-                        const mesh = img.object3D && img.object3D.children[0];
-                        if (mesh && mesh.material) {
-                            mesh.material.transparent = false;
-                            mesh.material.opacity = 1;
-                            mesh.material.alphaTest = 0.1;
-                            mesh.material.depthWrite = true;
-                            if (AFRAME.THREE) mesh.material.side = AFRAME.THREE.DoubleSide;
-                            if (mesh.material.map) mesh.material.map.flipY = false;
-                            mesh.material.needsUpdate = true;
-                        }
-                    }, 100);
-                });
-
-                ImageAnimationSystem2.images.push({
-                    entity: img,
-                    position: { ...position },
-                    velocity: velocity
-                });
+        // 對所有 a-marker 注入圖片（每個 marker 用不同 url 辨識不同圖卡）
+        function injectImagesIntoAllMarkers() {
+            const markers = document.querySelectorAll("a-marker");
+            markers.forEach(function(marker) {
+                injectImagesIntoMarker(marker);
             });
-
-            // 與 ar/index.html 相同：markerFound 時顯示圖片並啟動動畫
-            function attachMarker2Events() {
-                if (marker && marker.hasLoaded) {
-                    marker.addEventListener("markerFound", function() {
-                        window.__marker2Found = true;
-                        console.log("Marker2 被偵測到！顯示圖片...");
-                        showAllImages2();
-                    });
-                    marker.addEventListener("markerLost", function() {
-                        console.log("Marker2 失去追蹤");
-                    });
-                    console.log("Marker2 事件監聽器已綁定");
-                } else {
-                    setTimeout(attachMarker2Events, 100);
-                }
-            }
-            if (marker.hasLoaded) {
-                attachMarker2Events();
-            } else {
-                marker.addEventListener("loaded", attachMarker2Events);
-            }
-
-            console.log("Marker2 圖片注入完成，共", images.length, "張圖片");
-            // 不再在 markerLost 時隱藏圖片，確保圖片一旦顯示就會一直保持
         }
 
         // 保存當前截圖的 blob 和 URL
@@ -1522,7 +1046,7 @@
             if (locationBtn) {
                 locationBtn.addEventListener("click", function () {
                     // 使用非阻塞的模态框替代 alert
-                    showInfoModal("位置介紹", "這裡可以添加位置介紹的詳細內容1。");
+                    showInfoModal("位置介紹", "這裡可以添加位置介紹的詳細內容。");
                 });
             }
         }
@@ -1650,50 +1174,35 @@
         }
 
         // 等待 A-Frame 準備完成後進行注入與綁定
-        function initializeApp() {
+        window.addEventListener("load", function () {
             // 進入頁面時隨機選一題燈謎
             if (Array.isArray(RIDDLES) && RIDDLES.length > 0) {
                 const idx = Math.floor(Math.random() * RIDDLES.length);
                 currentRiddle = RIDDLES[idx];
             }
 
-            injectImagesIntoMarker();
-            injectImagesIntoMarker2();
-            setupCapture();
-            setupLocationButton();
-            setupRiddleButton();
-            setupPreviewModal();
-            setupInfoModal();
-        }
-
-        window.addEventListener("load", function () {
-            const scene = document.querySelector("a-scene");
-            if (scene && scene.hasLoaded) {
-                initializeApp();
-            } else if (scene) {
-                scene.addEventListener("loaded", initializeApp);
+            if (document.readyState === "complete") {
+                injectImagesIntoAllMarkers();
+                setupCapture();
+                setupLocationButton();
+                setupRiddleButton();
+                setupPreviewModal();
+                setupInfoModal();
             } else {
-                // 如果場景還沒創建，等待一下再試
-                setTimeout(function() {
-                    const scene = document.querySelector("a-scene");
-                    if (scene) {
-                        if (scene.hasLoaded) {
-                            initializeApp();
-                        } else {
-                            scene.addEventListener("loaded", initializeApp);
-                        }
-                    } else {
-                        console.warn("無法找到 a-scene，直接初始化");
-                        initializeApp();
-                    }
-                }, 500);
+                window.addEventListener("DOMContentLoaded", function () {
+                    injectImagesIntoAllMarkers();
+                    setupCapture();
+                    setupLocationButton();
+                    setupRiddleButton();
+                    setupPreviewModal();
+                    setupInfoModal();
+                });
             }
         });
 
         // 頁面卸載時停止動畫
         window.addEventListener("beforeunload", function () {
             ImageAnimationSystem.stop();
-            ImageAnimationSystem2.stop();
         });
     </script>
 </body>

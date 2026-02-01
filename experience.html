@@ -65,7 +65,7 @@
             display: block;
         }
 
-        /* 特效筐圖層：與 HUD 相同用 inset: 0 + padding 8px 10px，貼合左右一致 */
+        /* 特效筐圖層：左右無留白（padding 8px 0），完全貼滿左右 */
         .effect-box-layer {
             position: fixed;
             inset: 0;
@@ -74,7 +74,7 @@
             flex-direction: column;
             justify-content: space-between;
             z-index: 5;
-            padding: 8px 10px;
+            padding: 8px 0;
             box-sizing: border-box;
             overflow: visible;
         }
@@ -225,7 +225,7 @@
             }
 
             .effect-box-layer {
-                padding: 6px 8px;
+                padding: 6px 0;
             }
 
             .effect-box-top {
@@ -272,7 +272,7 @@
         /* 小屏幕手機優化 */
         @media (max-width: 360px) {
             .effect-box-layer {
-                padding: 6px 8px;
+                padding: 6px 0;
             }
 
             .effect-box-top {

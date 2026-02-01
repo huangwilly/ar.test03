@@ -72,11 +72,10 @@
             padding: 0 4px;
         }
 
-        /* 特效筐：左右大幅拉長以填滿手機（總寬 140vw 置中 + safe-area），掃到下個 marker 才替換 */
+        /* 特效筐：每個 marker 一組兩張圖，寬度與畫面一致（左右無 padding），掃到下個 marker 才替換 */
         .effect-box {
-            width: calc(140vw + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px));
-            max-width: none;
-            margin-left: calc(-20vw - env(safe-area-inset-left, 0px));
+            width: 100%;
+            max-width: 100%;
             pointer-events: none;
             flex-shrink: 0;
             display: none;
@@ -101,10 +100,10 @@
         }
         .effect-box img {
             width: 100%;
-            min-width: 100%;
+            max-width: 100%;
             height: auto;
             max-height: clamp(60px, 20vh, 220px);
-            object-fit: cover;
+            object-fit: contain;
             object-position: center;
             display: block;
         }

@@ -119,12 +119,16 @@
         .effect-box-top {
             order: -1;
             padding: 0;
+            /* 往下移避開最上層按鈕（返回首頁） */
+            margin-top: 48px;
             /* 自適應高度：最小 60px、依視窗 20vh、最大 220px */
             max-height: clamp(60px, 20vh, 220px);
         }
         .effect-box-bottom {
             padding: 0;
             margin-top: auto;
+            /* 往上移避開最下層按鈕（位置介紹、拍照） */
+            margin-bottom: 56px;
             max-height: clamp(60px, 20vh, 220px);
         }
         .effect-box img {
@@ -225,6 +229,12 @@
                 padding: 6px 8px;
             }
 
+            .effect-box-top {
+                margin-top: 36px;
+            }
+            .effect-box-bottom {
+                margin-bottom: 44px;
+            }
             .effect-box-top,
             .effect-box-bottom {
                 max-height: clamp(48px, 14vh, 160px);
@@ -266,6 +276,12 @@
                 padding: 6px 8px;
             }
 
+            .effect-box-top {
+                margin-top: 44px;
+            }
+            .effect-box-bottom {
+                margin-bottom: 52px;
+            }
             .effect-box-top,
             .effect-box-bottom {
                 max-height: clamp(52px, 18vh, 180px);

@@ -1251,12 +1251,14 @@
                             });
                         }
 
-                        // 疊加特效筐：填滿整寬，只裁切靠螢幕邊緣（up 裁上緣、dw 裁下緣），靠螢幕中間不裁
+                        // 疊加特效筐：up 往下、dw 往上，對齊畫面上 margin 避免被切掉
                         const effectTop = document.getElementById("effect-box-top");
                         const effectBottom = document.getElementById("effect-box-bottom");
                         const imgTop = document.getElementById("effect-img-top");
                         const imgBottom = document.getElementById("effect-img-bottom");
                         const maxEffectHeight = Math.round(height * 0.2);
+                        const topOffset = Math.round(height * 0.048);
+                        const bottomOffset = Math.round(height * 0.056);
                         function drawEffectBox(imgEl, atTop) {
                             if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth) return;
                             const nw = imgEl.naturalWidth;
@@ -1265,14 +1267,12 @@
                             const cropW = width / scale;
                             const cropH = maxEffectHeight / scale;
                             const sx = (nw - cropW) / 2;
-                            // up：取圖的「下緣」（sy 靠下），不裁到靠螢幕中間的下緣
-                            // dw：取圖的「上緣」（sy=0），不裁到靠螢幕中間的上緣
                             const sy = atTop ? Math.max(0, nh - cropH) : 0;
                             try {
                                 if (atTop) {
-                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, 0, width, maxEffectHeight);
+                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, topOffset, width, maxEffectHeight);
                                 } else {
-                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, height - maxEffectHeight, width, maxEffectHeight);
+                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, height - maxEffectHeight - bottomOffset, width, maxEffectHeight);
                                 }
                             } catch (e) { /* 忽略單張繪製錯誤 */ }
                         }

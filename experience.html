@@ -1133,7 +1133,7 @@
                             console.error("無法繪製場景 canvas：", err);
                         }
 
-                        // 疊加特效筐（在 AR 場景上方），拍照後也會顯示
+                        // 疊加特效筐（在 AR 場景上方），與畫面一致：填滿整寬、cover 裁切、置中
                         const effectTop = document.getElementById("effect-box-top");
                         const effectBottom = document.getElementById("effect-box-bottom");
                         const imgTop = document.getElementById("effect-img-top");
@@ -1141,14 +1141,19 @@
                         const maxEffectHeight = Math.round(height * 0.2);
                         function drawEffectBox(imgEl, atTop) {
                             if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth) return;
-                            const scale = Math.min(width / imgEl.naturalWidth, maxEffectHeight / imgEl.naturalHeight);
-                            const w = imgEl.naturalWidth * scale;
-                            const h = imgEl.naturalHeight * scale;
+                            const nw = imgEl.naturalWidth;
+                            const nh = imgEl.naturalHeight;
+                            // 與畫面 object-fit: cover 一致：填滿 (width × maxEffectHeight)，從圖中心裁切
+                            const scale = Math.max(width / nw, maxEffectHeight / nh);
+                            const cropW = width / scale;
+                            const cropH = maxEffectHeight / scale;
+                            const sx = (nw - cropW) / 2;
+                            const sy = (nh - cropH) / 2;
                             try {
                                 if (atTop) {
-                                    ctx.drawImage(imgEl, 0, 0, imgEl.naturalWidth, imgEl.naturalHeight, 0, 0, w, h);
+                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, 0, width, maxEffectHeight);
                                 } else {
-                                    ctx.drawImage(imgEl, 0, 0, imgEl.naturalWidth, imgEl.naturalHeight, 0, height - h, w, h);
+                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, height - maxEffectHeight, width, maxEffectHeight);
                                 }
                             } catch (e) { /* 忽略單張繪製錯誤 */ }
                         }

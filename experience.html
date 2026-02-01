@@ -27,7 +27,7 @@
             user-select: none;
         }
 
-        /* 特效筐圖層：在按鈕下一層、在 marker 掃描物件上一層；左右無留白，寬度與相機介面一致 */
+        /* 特效筐圖層：在按鈕下一層、在 marker 掃描物件上一層；左右拉長 10% 溢出 */
         .effect-box-layer {
             position: fixed;
             inset: 0;
@@ -38,6 +38,7 @@
             z-index: 5;
             padding: 8px 0;
             box-sizing: border-box;
+            overflow: visible;
         }
 
         .hud {
@@ -68,10 +69,11 @@
             padding: 0 4px;
         }
 
-        /* 特效筐：每個 marker 一組兩張圖，寬度填滿畫面與相機介面一致，掃到下個 marker 才替換 */
+        /* 特效筐：每個 marker 一組兩張圖，左右各拉長 10%（總寬 120vw 置中），掃到下個 marker 才替換 */
         .effect-box {
-            width: 100%;
-            max-width: 100vw;
+            width: 120vw;
+            max-width: 120vw;
+            margin-left: -10vw;
             pointer-events: none;
             flex-shrink: 0;
             display: none;
@@ -96,7 +98,7 @@
         }
         .effect-box img {
             width: 100%;
-            max-width: 100vw;
+            max-width: 100%;
             height: auto;
             max-height: clamp(60px, 20vh, 220px);
             object-fit: contain;
@@ -1134,33 +1136,22 @@
                             console.error("無法繪製場景 canvas：", err);
                         }
 
-                        // 疊加特效筐（在 AR 場景上方、與畫面同寬），拍照後也會顯示
+                        // 疊加特效筐（在 AR 場景上方），拍照後也會顯示
                         const effectTop = document.getElementById("effect-box-top");
                         const effectBottom = document.getElementById("effect-box-bottom");
                         const imgTop = document.getElementById("effect-img-top");
                         const imgBottom = document.getElementById("effect-img-bottom");
-                        // 與 CSS 一致：高度約 20% 視窗，並 clamp 在合理範圍
-                        const maxEffectHeight = Math.min(220, Math.max(60, Math.round(height * 0.2)));
+                        const maxEffectHeight = Math.round(height * 0.2);
                         function drawEffectBox(imgEl, atTop) {
                             if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth) return;
-                            const nw = imgEl.naturalWidth;
-                            const nh = imgEl.naturalHeight;
-                            const drawWidth = width;
-                            const drawHeightFull = (nh / nw) * width;
-                            let drawHeight, sx, sy, sw, sh;
-                            if (drawHeightFull <= maxEffectHeight) {
-                                drawHeight = drawHeightFull;
-                                sx = 0; sy = 0; sw = nw; sh = nh;
-                            } else {
-                                drawHeight = maxEffectHeight;
-                                sh = (nw * maxEffectHeight) / width;
-                                sx = 0; sy = 0; sw = nw;
-                            }
+                            const scale = Math.min(width / imgEl.naturalWidth, maxEffectHeight / imgEl.naturalHeight);
+                            const w = imgEl.naturalWidth * scale;
+                            const h = imgEl.naturalHeight * scale;
                             try {
                                 if (atTop) {
-                                    ctx.drawImage(imgEl, sx, sy, sw, sh, 0, 0, drawWidth, drawHeight);
+                                    ctx.drawImage(imgEl, 0, 0, imgEl.naturalWidth, imgEl.naturalHeight, 0, 0, w, h);
                                 } else {
-                                    ctx.drawImage(imgEl, sx, sy, sw, sh, 0, height - drawHeight, drawWidth, drawHeight);
+                                    ctx.drawImage(imgEl, 0, 0, imgEl.naturalWidth, imgEl.naturalHeight, 0, height - h, w, h);
                                 }
                             } catch (e) { /* 忽略單張繪製錯誤 */ }
                         }

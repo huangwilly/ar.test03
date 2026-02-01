@@ -55,6 +55,37 @@
             padding: 0 4px;
         }
 
+        /* 特效筐：每個 marker 一組兩張圖，固定顯示在畫面最上與最下，掃到下個 marker 才替換 */
+        .effect-box {
+            width: 100%;
+            pointer-events: none;
+            flex-shrink: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .effect-box.active {
+            display: flex;
+        }
+        .effect-box-top {
+            order: -1;
+            padding: 0;
+            max-height: 20vh;
+        }
+        .effect-box-bottom {
+            padding: 0;
+            margin-top: auto;
+            max-height: 20vh;
+        }
+        .effect-box img {
+            width: 100%;
+            height: auto;
+            max-height: 20vh;
+            object-fit: contain;
+            object-position: center;
+        }
+
         .hud button {
             pointer-events: auto;
             border: none;
@@ -615,8 +646,11 @@
         <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- 介面 HUD：返回首頁與拍照按鈕 -->
+    <!-- 介面 HUD：返回首頁與拍照按鈕；特效筐（最上/最下）依當前 marker 顯示兩張圖，掃到下個 marker 才替換 -->
     <div class="hud">
+        <div class="effect-box effect-box-top" id="effect-box-top">
+            <img id="effect-img-top" src="" alt="">
+        </div>
         <div class="hud-top">
             <button class="btn-back" type="button" onclick="window.location.href='index.html'">
                 <span>← 返回首頁</span>
@@ -632,6 +666,9 @@
             <button id="riddle-btn" class="btn-riddle" type="button">
                 猜燈謎
             </button>
+        </div>
+        <div class="effect-box effect-box-bottom" id="effect-box-bottom">
+            <img id="effect-img-bottom" src="" alt="">
         </div>
     </div>
 
@@ -718,6 +755,17 @@
             "marker-7": { title: "位置5", text: "您正在查看 位置5。（掃描 marker7.patt 圖卡）" },
             "marker-8": { title: "位置6", text: "您正在查看 位置6。（掃描 marker8.patt 圖卡）" },
             "marker-9": { title: "位置7", text: "您正在查看 位置7。（掃描 marker9.patt 圖卡）" }
+        };
+
+        // 每個 marker 對應一組特效筐：兩張圖（top 顯示在畫面最上、bottom 顯示在畫面最下），掃到下個 marker 才替換
+        const MARKER_EFFECT_IMAGES = {
+            "animated-marker": { top: "up/up1.jpg", bottom: "up/dw1.jpg" },
+            "marker-2": { top: "up/up2.jpg", bottom: "up/dw2.jpg" },
+            "marker-3": { top: "up/up3.jpg", bottom: "up/dw3.jpg" },
+            "marker-6": { top: "up/up4.jpg", bottom: "up/dw4.jpg" },
+            "marker-7": { top: "up/up5.jpg", bottom: "up/dw5.jpg" },
+            "marker-8": { top: "up/up6.jpg", bottom: "up/dw6.jpg" },
+            "marker-9": { top: "up/up7.jpg", bottom: "up/dw7.jpg" }
         };
 
         // 根據命名規則自動產生圖片列表：img (1).png ~ img (654).png
@@ -889,6 +937,27 @@
             ImageAnimationSystem.stop();
         }
 
+        // 更新特效筐：顯示該 marker 對應的兩張圖（最上、最下），不消失直到下個 marker 掃到再替換
+        function updateEffectBoxUI(markerId) {
+            const config = MARKER_EFFECT_IMAGES && MARKER_EFFECT_IMAGES[markerId];
+            const boxTop = document.getElementById("effect-box-top");
+            const boxBottom = document.getElementById("effect-box-bottom");
+            const imgTop = document.getElementById("effect-img-top");
+            const imgBottom = document.getElementById("effect-img-bottom");
+            if (!boxTop || !boxBottom || !imgTop || !imgBottom) return;
+            if (!config) {
+                boxTop.classList.remove("active");
+                boxBottom.classList.remove("active");
+                imgTop.removeAttribute("src");
+                imgBottom.removeAttribute("src");
+                return;
+            }
+            imgTop.src = config.top;
+            imgBottom.src = config.bottom;
+            boxTop.classList.add("active");
+            boxBottom.classList.add("active");
+        }
+
         // 對單一 marker 注入圖片並綁定 markerFound
         function injectImagesIntoMarker(marker) {
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
@@ -949,6 +1018,7 @@
 
             marker.addEventListener("markerFound", function() {
                 showAllImages(marker);
+                updateEffectBoxUI(marker.id);  // 該 marker 的特效筐（上/下兩張圖）顯示並保持，直到下個 marker 掃到再替換
                 const loc = MARKER_LOCATIONS[marker.id];
                 if (loc) {
                     showInfoModal(loc.title, loc.text);

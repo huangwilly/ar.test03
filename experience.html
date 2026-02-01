@@ -27,10 +27,13 @@
             user-select: none;
         }
 
-        /* 特效筐圖層：在按鈕下一層、在 marker 掃描物件上一層；左右拉長 10% 溢出 */
+        /* 特效筐圖層：在按鈕下一層、在 marker 掃描物件上一層；左右拉長以填滿手機 */
         .effect-box-layer {
             position: fixed;
-            inset: 0;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
             pointer-events: none;
             display: flex;
             flex-direction: column;
@@ -69,11 +72,11 @@
             padding: 0 4px;
         }
 
-        /* 特效筐：每個 marker 一組兩張圖，左右各拉長 10%（總寬 120vw 置中），掃到下個 marker 才替換 */
+        /* 特效筐：左右大幅拉長以填滿手機（總寬 140vw 置中 + safe-area），掃到下個 marker 才替換 */
         .effect-box {
-            width: 120vw;
-            max-width: 120vw;
-            margin-left: -10vw;
+            width: calc(140vw + env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px));
+            max-width: none;
+            margin-left: calc(-20vw - env(safe-area-inset-left, 0px));
             pointer-events: none;
             flex-shrink: 0;
             display: none;
@@ -98,10 +101,10 @@
         }
         .effect-box img {
             width: 100%;
-            max-width: 100%;
+            min-width: 100%;
             height: auto;
             max-height: clamp(60px, 20vh, 220px);
-            object-fit: contain;
+            object-fit: cover;
             object-position: center;
             display: block;
         }

@@ -134,16 +134,9 @@
         .effect-box img {
             width: 100%;
             height: clamp(60px, 20vh, 220px);
-            object-fit: cover;
+            object-fit: contain;
+            object-position: center;
             display: block;
-        }
-        /* up：只裁切靠螢幕上緣，保留圖的下緣（靠螢幕中間） */
-        .effect-box-top img {
-            object-position: bottom;
-        }
-        /* dw：只裁切靠螢幕下緣，保留圖的上緣（靠螢幕中間） */
-        .effect-box-bottom img {
-            object-position: top;
         }
 
         .hud button {
@@ -1008,7 +1001,7 @@
             const basePath = "assets/";
             const prefix = "img (";
             const suffix = ").png";
-            const totalCount = 150;  // 改成你的實際總張數（例如 100、200）
+            const totalCount = 280;  // 改成你的實際總張數（例如 100、200）
 
             for (let i = 1; i <= totalCount; i++) {
                 IMAGE_CONFIG.images.push(`${basePath}${prefix}${i}${suffix}`);

@@ -1251,7 +1251,7 @@
                             });
                         }
 
-                        // 疊加特效筐：填滿上下左右，不預留空間；整張圖 contain 置中
+                        // 疊加特效筐：圖片左右拉伸填滿畫面寬度，上下填滿條帶
                         const effectTop = document.getElementById("effect-box-top");
                         const effectBottom = document.getElementById("effect-box-bottom");
                         const imgTop = document.getElementById("effect-img-top");
@@ -1261,15 +1261,9 @@
                             if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth) return;
                             const nw = imgEl.naturalWidth;
                             const nh = imgEl.naturalHeight;
-                            const scale = Math.min(width / nw, maxEffectHeight / nh);
-                            const drawW = nw * scale;
-                            const drawH = nh * scale;
-                            const drawX = (width - drawW) / 2;
-                            const drawY = atTop
-                                ? (maxEffectHeight - drawH) / 2
-                                : height - maxEffectHeight + (maxEffectHeight - drawH) / 2;
+                            const destY = atTop ? 0 : height - maxEffectHeight;
                             try {
-                                ctx.drawImage(imgEl, 0, 0, nw, nh, drawX, drawY, drawW, drawH);
+                                ctx.drawImage(imgEl, 0, 0, nw, nh, 0, destY, width, maxEffectHeight);
                             } catch (e) { /* 忽略單張繪製錯誤 */ }
                         }
                         if (effectTop && effectTop.classList.contains("active") && imgTop) drawEffectBox(imgTop, true);

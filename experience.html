@@ -59,10 +59,14 @@
             display: block;
         }
 
-        /* 特效筐圖層：填滿左右（無左右 padding），僅保留上下間距 */
+        /* 特效筐圖層：左右貼齊視窗（left/right 0、寬度 100%），僅上下 padding */
         .effect-box-layer {
             position: fixed;
-            inset: 0;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
             pointer-events: none;
             display: flex;
             flex-direction: column;
@@ -101,7 +105,7 @@
             padding: 0 4px;
         }
 
-        /* 特效筐：每個 marker 一組兩張圖，寬度與畫面一致（左右無 padding），掃到下個 marker 才替換 */
+        /* 特效筐：每個 marker 一組兩張圖，寬度 100% 填滿圖層，掃到下個 marker 才替換 */
         .effect-box {
             width: 100%;
             max-width: 100%;

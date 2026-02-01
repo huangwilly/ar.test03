@@ -1251,7 +1251,7 @@
                             });
                         }
 
-                        // 疊加特效筐：填滿整寬，只裁切靠螢幕邊緣（up 裁上緣、dw 裁下緣），靠螢幕中間不裁；up 往下、dw 往上避免被切掉
+                        // 疊加特效筐：不裁切上下，整張圖 contain 置中；up 往下、dw 往上避免被切掉
                         const effectTop = document.getElementById("effect-box-top");
                         const effectBottom = document.getElementById("effect-box-bottom");
                         const imgTop = document.getElementById("effect-img-top");
@@ -1263,19 +1263,15 @@
                             if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth) return;
                             const nw = imgEl.naturalWidth;
                             const nh = imgEl.naturalHeight;
-                            const scale = Math.max(width / nw, maxEffectHeight / nh);
-                            const cropW = width / scale;
-                            const cropH = maxEffectHeight / scale;
-                            const sx = (nw - cropW) / 2;
-                            // up：取圖的「下緣」（sy 靠下），不裁到靠螢幕中間的下緣
-                            // dw：取圖的「上緣」（sy=0），不裁到靠螢幕中間的上緣
-                            const sy = atTop ? Math.max(0, nh - cropH) : 0;
+                            const scale = Math.min(width / nw, maxEffectHeight / nh);
+                            const drawW = nw * scale;
+                            const drawH = nh * scale;
+                            const drawX = (width - drawW) / 2;
+                            const drawY = atTop
+                                ? topOffset + (maxEffectHeight - drawH) / 2
+                                : height - maxEffectHeight - bottomOffset + (maxEffectHeight - drawH) / 2;
                             try {
-                                if (atTop) {
-                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, topOffset, width, maxEffectHeight);
-                                } else {
-                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, height - maxEffectHeight - bottomOffset, width, maxEffectHeight);
-                                }
+                                ctx.drawImage(imgEl, 0, 0, nw, nh, drawX, drawY, drawW, drawH);
                             } catch (e) { /* 忽略單張繪製錯誤 */ }
                         }
                         if (effectTop && effectTop.classList.contains("active") && imgTop) drawEffectBox(imgTop, true);

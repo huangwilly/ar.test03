@@ -42,13 +42,14 @@
         }
         .scanned-image-item {
             position: absolute;
-            width: clamp(60px, 18vw, 120px);
-            height: clamp(60px, 18vw, 120px);
+            width: clamp(120px, 36vw, 240px);
+            height: clamp(120px, 36vw, 240px);
             pointer-events: auto;
             cursor: pointer;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            background: transparent;
+            box-shadow: none;
             transform: translate(-50%, -50%);
         }
         .scanned-image-item img {
@@ -216,8 +217,8 @@
         /* 手機橫屏優化 */
         @media (orientation: landscape) and (max-height: 500px) {
             .scanned-image-item {
-                width: clamp(48px, 14vw, 96px);
-                height: clamp(48px, 14vw, 96px);
+                width: clamp(96px, 28vw, 192px);
+                height: clamp(96px, 28vw, 192px);
             }
 
             .effect-box-layer {
@@ -1223,7 +1224,7 @@
                         // 疊加 2D 覆蓋層浮動圖片（與畫面百分比對應）
                         const layer = document.getElementById("scanned-images-layer");
                         if (layer && layer.classList.contains("active")) {
-                            const size = Math.round(Math.max(60, Math.min(120, width * 0.18)));
+                            const size = Math.round(Math.max(120, Math.min(240, width * 0.36)));
                             OverlayImageSystem.images.forEach(function (data) {
                                 const imgEl = data.element && data.element.querySelector ? data.element.querySelector("img") : null;
                                 if (!imgEl || !imgEl.complete || !imgEl.naturalWidth) return;

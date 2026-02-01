@@ -713,7 +713,7 @@
         const MARKER_LOCATIONS = {
             "animated-marker": { title: "🌸花蓮火車站🌸", text: "原 舊花蓮港停車場\n如今為 山海交織的大門\n歡迎蒞臨2026花蓮太平洋燈會" },
             "marker-2": { title: "🌸花蓮城隍廟（福安宮）🌸", text: "始建於 1934 年（日治昭和九年）\n為花蓮歷史最悠久的寺廟建築\n生動地記錄了東台灣的移民與開發史" },
-            "marker-3": { title: "🌸花蓮文創園區🌸", text: "百年酒廠轉身 成就文藝靈魂\n穿越時空來到《茶金》拍攝地\n這是充滿「酒香」的文創聚落" },
+            "marker-3": { title: "🌸花蓮文創園區🌸", text: "百年酒廠轉身 成就文藥靈魂\n穿越時空來到《茶金》拍攝地\n這是充滿「酒香」的文創聚落" },
             "marker-6": { title: "位置4", text: "您正在查看 位置4。（掃描 marker6.patt 圖卡）" },
             "marker-7": { title: "位置5", text: "您正在查看 位置5。（掃描 marker7.patt 圖卡）" },
             "marker-8": { title: "位置6", text: "您正在查看 位置6。（掃描 marker8.patt 圖卡）" },
@@ -889,48 +889,6 @@
             ImageAnimationSystem.stop();
         }
 
-        // 再次掃描時：把屬於此 marker 且已移到 scene 的物件吸回 marker（世界 → local）
-        function reparentPersistedBackToMarker(marker) {
-            const sceneEl = document.querySelector("a-scene");
-            const THREE = AFRAME.THREE;
-            if (!sceneEl || !THREE || !marker.id) return;
-
-            const markerId = marker.id;
-            const persisted = Array.from(sceneEl.children).filter(function(el) {
-                return el.getAttribute && el.getAttribute("data-marker-id") === markerId;
-            });
-
-            const markerInv = new THREE.Matrix4().copy(marker.object3D.matrixWorld).invert();
-            const localPos = new THREE.Vector3();
-            const localQuat = new THREE.Quaternion();
-            const localScale = new THREE.Vector3();
-            const euler = new THREE.Euler();
-
-            persisted.forEach(function(entity) {
-                const entityWorld = new THREE.Matrix4().copy(entity.object3D.matrixWorld);
-                const localMat = new THREE.Matrix4().multiplyMatrices(markerInv, entityWorld);
-                localMat.decompose(localPos, localQuat, localScale);
-
-                sceneEl.removeChild(entity);
-                marker.appendChild(entity);
-
-                const degX = THREE.MathUtils.radToDeg(euler.setFromQuaternion(localQuat).x);
-                const degY = THREE.MathUtils.radToDeg(euler.y);
-                const degZ = THREE.MathUtils.radToDeg(euler.z);
-
-                entity.setAttribute("position", { x: localPos.x, y: localPos.y, z: localPos.z });
-                entity.setAttribute("rotation", { x: degX, y: degY, z: degZ });
-                entity.setAttribute("scale", { x: localScale.x, y: localScale.y, z: localScale.z });
-
-                const imageData = ImageAnimationSystem.images.find(function(data) { return data.entity === entity; });
-                if (imageData) {
-                    imageData.position.x = localPos.x;
-                    imageData.position.y = localPos.y;
-                    imageData.position.z = localPos.z;
-                }
-            });
-        }
-
         // 對單一 marker 注入圖片並綁定 markerFound
         function injectImagesIntoMarker(marker) {
             if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
@@ -953,7 +911,6 @@
                 img.setAttribute("class", "clickable");
                 img.setAttribute("gesture-handler", "");
                 img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
-                img.setAttribute("data-marker-id", marker.id || "");
 
                 marker.appendChild(img);
 
@@ -991,55 +948,11 @@
             });
 
             marker.addEventListener("markerFound", function() {
-                // 吸回：把先前 reparent 到 scene 的、屬於此 marker 的物件移回 marker（世界座標 → local）
-                reparentPersistedBackToMarker(marker);
                 showAllImages(marker);
                 const loc = MARKER_LOCATIONS[marker.id];
                 if (loc) {
                     showInfoModal(loc.title, loc.text);
                 }
-            });
-
-            // markerLost 時將子物件 reparent 到 scene，以世界座標保留在畫面上
-            marker.addEventListener("markerLost", function() {
-                const sceneEl = document.querySelector("a-scene");
-                const THREE = AFRAME.THREE;
-                if (!sceneEl || !THREE) return;
-
-                const worldPos = new THREE.Vector3();
-                const worldQuat = new THREE.Quaternion();
-                const worldScale = new THREE.Vector3();
-                const euler = new THREE.Euler();
-
-                // 先收集要移動的子節點（避免邊移邊遍歷）
-                const children = Array.from(marker.children).filter(function(el) {
-                    return el.object3D && el.hasAttribute && el.getAttribute("src");
-                });
-
-                children.forEach(function(entity) {
-                    entity.object3D.getWorldPosition(worldPos);
-                    entity.object3D.getWorldQuaternion(worldQuat);
-                    entity.object3D.getWorldScale(worldScale);
-                    euler.setFromQuaternion(worldQuat);
-                    const degX = THREE.MathUtils.radToDeg(euler.x);
-                    const degY = THREE.MathUtils.radToDeg(euler.y);
-                    const degZ = THREE.MathUtils.radToDeg(euler.z);
-
-                    marker.removeChild(entity);
-                    sceneEl.appendChild(entity);
-
-                    entity.setAttribute("position", { x: worldPos.x, y: worldPos.y, z: worldPos.z });
-                    entity.setAttribute("rotation", { x: degX, y: degY, z: degZ });
-                    entity.setAttribute("scale", { x: worldScale.x, y: worldScale.y, z: worldScale.z });
-
-                    // 同步動畫系統的 position 為世界座標，讓後續動畫仍在正確空間
-                    const imageData = ImageAnimationSystem.images.find(function(data) { return data.entity === entity; });
-                    if (imageData) {
-                        imageData.position.x = worldPos.x;
-                        imageData.position.y = worldPos.y;
-                        imageData.position.z = worldPos.z;
-                    }
-                });
             });
         }
 

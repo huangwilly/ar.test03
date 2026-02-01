@@ -27,19 +27,16 @@
             user-select: none;
         }
 
-        /* 特效筐圖層：在按鈕下一層、在 marker 掃描物件上一層；左右拉長以填滿手機 */
+        /* 特效筐圖層：與按鈕 HUD 同一套方式填滿畫面（inset: 0 + padding 一致） */
         .effect-box-layer {
             position: fixed;
-            left: 0;
-            right: 0;
-            top: 0;
-            bottom: 0;
+            inset: 0;
             pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             z-index: 5;
-            padding: 8px 0;
+            padding: 8px 10px;
             box-sizing: border-box;
             overflow: visible;
         }
@@ -183,7 +180,7 @@
         /* 手機橫屏優化 */
         @media (orientation: landscape) and (max-height: 500px) {
             .effect-box-layer {
-                padding: 6px 0;
+                padding: 6px 8px;
             }
 
             .effect-box-top,
@@ -224,7 +221,7 @@
         /* 小屏幕手機優化 */
         @media (max-width: 360px) {
             .effect-box-layer {
-                padding: 6px 0;
+                padding: 6px 8px;
             }
 
             .effect-box-top,

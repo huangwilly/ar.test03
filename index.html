@@ -425,18 +425,17 @@
         }
 
         .mode-button {
-            border: none;
-            border-radius: 20px;
-            padding: 20px 22px;
+            border: 2px solid rgba(255, 107, 53, 0.15);
+            border-radius: 24px;
+            padding: 24px 28px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 16px;
+            justify-content: center;
             cursor: pointer;
-            background: rgba(255, 255, 255, 0.95);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 250, 245, 0.95));
             color: #2c3e50;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
             position: relative;
             overflow: hidden;
             will-change: transform;
@@ -459,15 +458,17 @@
         }
 
         .mode-button:hover {
-            transform: translate3d(0, -3px, 0);
-            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.4);
-            background: rgba(255, 255, 255, 1);
+            transform: translate3d(0, -4px, 0);
+            box-shadow: 0 12px 36px rgba(255, 107, 53, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            background: linear-gradient(180deg, #fff, rgba(255, 248, 240, 0.98));
+            border-color: rgba(255, 107, 53, 0.35);
         }
 
         .mode-button.active {
             background: linear-gradient(135deg, #ff6b35, #ff8c42);
             color: #fff;
-            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.6);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
             transform: translate3d(0, -2px, 0);
         }
 
@@ -476,14 +477,16 @@
         }
 
         .mode-button .mode-title {
-            flex: 1;
-            text-align: left;
+            text-align: center;
+            width: 100%;
         }
 
         .mode-title {
             font-weight: 700;
             font-size: 1.5rem;
             margin: 0;
+            letter-spacing: 0.04em;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* 詳細資訊面板 */
@@ -764,13 +767,13 @@
             }
 
             .mode-button {
-                padding: 14px 16px;
-                border-radius: 16px;
-                flex-wrap: wrap;
+                padding: 20px 22px;
+                border-radius: 20px;
             }
 
             .mode-title {
                 font-size: 1.2rem;
+                letter-spacing: 0.03em;
             }
 
             .info-panel {

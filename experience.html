@@ -1251,33 +1251,33 @@
                             });
                         }
 
-                        // 疊加特效筐：up 往下、dw 往上，對齊畫面上 margin 避免被切掉
+                        // 疊加特效筐：依畫面上實際位置與大小（getBoundingClientRect）對應到 canvas，避免上下被切掉
                         const effectTop = document.getElementById("effect-box-top");
                         const effectBottom = document.getElementById("effect-box-bottom");
                         const imgTop = document.getElementById("effect-img-top");
                         const imgBottom = document.getElementById("effect-img-bottom");
-                        const maxEffectHeight = Math.round(height * 0.2);
-                        const topOffset = Math.round(height * 0.048);
-                        const bottomOffset = Math.round(height * 0.056);
-                        function drawEffectBox(imgEl, atTop) {
-                            if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth) return;
+                        const vw = window.innerWidth;
+                        const vh = window.innerHeight;
+                        function drawEffectBoxAtRect(imgEl, boxEl) {
+                            if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth || !boxEl) return;
+                            const rect = boxEl.getBoundingClientRect();
                             const nw = imgEl.naturalWidth;
                             const nh = imgEl.naturalHeight;
-                            const scale = Math.max(width / nw, maxEffectHeight / nh);
-                            const cropW = width / scale;
-                            const cropH = maxEffectHeight / scale;
-                            const sx = (nw - cropW) / 2;
-                            const sy = atTop ? Math.max(0, nh - cropH) : 0;
+                            const dx = (rect.left / vw) * width;
+                            const dy = (rect.top / vh) * height;
+                            const dw = (rect.width / vw) * width;
+                            const dh = (rect.height / vh) * height;
+                            const scale = Math.min(dw / nw, dh / nh);
+                            const drawW = nw * scale;
+                            const drawH = nh * scale;
+                            const drawX = dx + (dw - drawW) / 2;
+                            const drawY = dy + (dh - drawH) / 2;
                             try {
-                                if (atTop) {
-                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, topOffset, width, maxEffectHeight);
-                                } else {
-                                    ctx.drawImage(imgEl, sx, sy, cropW, cropH, 0, height - maxEffectHeight - bottomOffset, width, maxEffectHeight);
-                                }
+                                ctx.drawImage(imgEl, 0, 0, nw, nh, drawX, drawY, drawW, drawH);
                             } catch (e) { /* 忽略單張繪製錯誤 */ }
                         }
-                        if (effectTop && effectTop.classList.contains("active") && imgTop) drawEffectBox(imgTop, true);
-                        if (effectBottom && effectBottom.classList.contains("active") && imgBottom) drawEffectBox(imgBottom, false);
+                        if (effectTop && effectTop.classList.contains("active") && imgTop) drawEffectBoxAtRect(imgTop, effectTop);
+                        if (effectBottom && effectBottom.classList.contains("active") && imgBottom) drawEffectBoxAtRect(imgBottom, effectBottom);
 
                         canvas.toBlob(
                             function (blob) {

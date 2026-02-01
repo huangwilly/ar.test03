@@ -27,6 +27,37 @@
             user-select: none;
         }
 
+        /* 掃描物件 2D 覆蓋層：marker 掃到後顯示的浮動圖片（z-index 4，在特效筐下） */
+        .scanned-images-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 4;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: none;
+        }
+        .scanned-images-layer.active {
+            display: block;
+        }
+        .scanned-image-item {
+            position: absolute;
+            width: clamp(60px, 18vw, 120px);
+            height: clamp(60px, 18vw, 120px);
+            pointer-events: auto;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+        }
+        .scanned-image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
         /* 特效筐圖層：與按鈕 HUD 同一套方式填滿畫面（inset: 0 + padding 一致） */
         .effect-box-layer {
             position: fixed;
@@ -184,6 +215,11 @@
 
         /* 手機橫屏優化 */
         @media (orientation: landscape) and (max-height: 500px) {
+            .scanned-image-item {
+                width: clamp(48px, 14vw, 96px);
+                height: clamp(48px, 14vw, 96px);
+            }
+
             .effect-box-layer {
                 padding: 6px 8px;
             }
@@ -696,6 +732,9 @@
         <a-entity camera></a-entity>
     </a-scene>
 
+    <!-- 掃描物件 2D 覆蓋層：marker 掃到後顯示的浮動圖片（z-index 4） -->
+    <div class="scanned-images-layer" id="scanned-images-layer"></div>
+
     <!-- 特效筐圖層：z-index 5，在 AR 場景上、在按鈕 HUD 下 -->
     <div class="effect-box-layer">
         <div class="effect-box effect-box-top" id="effect-box-top">
@@ -969,26 +1008,121 @@
             return copy.slice(0, Math.min(maxCount, copy.length));
         }
 
-        // 顯示圖片並啟動動畫；若傳入 markerEl 則只顯示該 marker 內的圖片
-        function showAllImages(markerEl) {
-            ImageAnimationSystem.images.forEach(imageData => {
-                if (!imageData.entity || !imageData.entity.object3D) return;
-                const belongsToMarker = !markerEl || imageData.entity.parentElement === markerEl;
-                if (belongsToMarker) {
-                    imageData.entity.object3D.visible = true;
-                }
-            });
-            ImageAnimationSystem.start();
-        }
+        // 2D 覆蓋層浮動圖片系統（位置與速度為畫面百分比 0–100）
+        const OverlayImageSystem = {
+            images: [],
+            boundary: { minX: 8, maxX: 92, minY: 25, maxY: 75 },
+            minDistance: 12,
+            animationId: null,
+            isRunning: false,
 
-        // 隱藏所有圖片並停止動畫
-        function hideAllImages() {
-            ImageAnimationSystem.images.forEach(imageData => {
-                if (imageData.entity && imageData.entity.object3D) {
-                    imageData.entity.object3D.visible = false;
+            isPositionValid(newPos, existingPositions) {
+                for (const pos of existingPositions) {
+                    const d = Math.sqrt(Math.pow(newPos.x - pos.x, 2) + Math.pow(newPos.y - pos.y, 2));
+                    if (d < this.minDistance) return false;
                 }
+                return true;
+            },
+
+            generateRandomPosition(existingPositions, maxAttempts = 50) {
+                const b = this.boundary;
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    const pos = {
+                        x: b.minX + Math.random() * (b.maxX - b.minX),
+                        y: b.minY + Math.random() * (b.maxY - b.minY)
+                    };
+                    if (this.isPositionValid(pos, existingPositions)) return pos;
+                }
+                return {
+                    x: b.minX + Math.random() * (b.maxX - b.minX),
+                    y: b.minY + Math.random() * (b.maxY - b.minY)
+                };
+            },
+
+            generateRandomVelocity() {
+                const speed = 0.02 + Math.random() * 0.04;
+                return {
+                    x: (Math.random() - 0.5) * speed,
+                    y: (Math.random() - 0.5) * speed
+                };
+            },
+
+            updateImage(imageData) {
+                const { element, position, velocity } = imageData;
+                position.x += velocity.x;
+                position.y += velocity.y;
+                const b = this.boundary;
+                if (position.x <= b.minX || position.x >= b.maxX) {
+                    velocity.x = -velocity.x * (0.8 + Math.random() * 0.4);
+                    position.x = Math.max(b.minX, Math.min(b.maxX, position.x));
+                }
+                if (position.y <= b.minY || position.y >= b.maxY) {
+                    velocity.y = -velocity.y * (0.8 + Math.random() * 0.4);
+                    position.y = Math.max(b.minY, Math.min(b.maxY, position.y));
+                }
+                if (element) {
+                    element.style.left = position.x + "%";
+                    element.style.top = position.y + "%";
+                }
+            },
+
+            animate() {
+                if (!this.isRunning) return;
+                this.images.forEach(data => this.updateImage(data));
+                this.animationId = requestAnimationFrame(() => this.animate());
+            },
+
+            start() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.animate();
+            },
+
+            stop() {
+                this.isRunning = false;
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                }
+            }
+        };
+
+        // 更新掃描物件 2D 覆蓋層：清空後依該次 marker 隨機 5 張圖，顯示並啟動浮動動畫，不消失直到下個 marker 掃到再替換
+        function updateScannedImagesOverlay() {
+            const layer = document.getElementById("scanned-images-layer");
+            if (!layer) return;
+
+            OverlayImageSystem.stop();
+            OverlayImageSystem.images = [];
+            layer.innerHTML = "";
+            layer.classList.remove("active");
+
+            if (!IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images) || IMAGE_CONFIG.images.length === 0) return;
+
+            const sources = pickRandomImages(IMAGE_CONFIG.images, 5);
+            const existingPositions = [];
+
+            sources.forEach((src) => {
+                const position = OverlayImageSystem.generateRandomPosition(existingPositions);
+                existingPositions.push({ ...position });
+                const velocity = OverlayImageSystem.generateRandomVelocity();
+
+                const wrap = document.createElement("div");
+                wrap.className = "scanned-image-item";
+                wrap.style.left = position.x + "%";
+                wrap.style.top = position.y + "%";
+
+                const img = document.createElement("img");
+                img.src = src;
+                img.alt = "";
+                wrap.appendChild(img);
+
+                layer.appendChild(wrap);
+                OverlayImageSystem.images.push({ element: wrap, position, velocity });
             });
-            ImageAnimationSystem.stop();
+
+            layer.classList.add("active");
+            OverlayImageSystem.start();
         }
 
         // 更新特效筐：顯示該 marker 對應的兩張圖（最上、最下），不消失直到下個 marker 掃到再替換
@@ -1012,67 +1146,13 @@
             boxBottom.classList.add("active");
         }
 
-        // 對單一 marker 注入圖片並綁定 markerFound
+        // 對單一 marker 綁定 markerFound：更新 2D 覆蓋層浮動圖、特效筐、位置說明
         function injectImagesIntoMarker(marker) {
-            if (!marker || !IMAGE_CONFIG || !Array.isArray(IMAGE_CONFIG.images)) {
-                return;
-            }
-
-            const images = pickRandomImages(IMAGE_CONFIG.images, 5);
-            const existingPositions = [];
-
-            images.forEach((src, index) => {
-                const position = ImageAnimationSystem.generateRandomPosition(existingPositions);
-                existingPositions.push({ ...position });
-                const velocity = ImageAnimationSystem.generateRandomVelocity();
-
-                const img = document.createElement("a-image");
-                img.setAttribute("src", src);
-                img.setAttribute("position", `${position.x} ${position.y} ${position.z}`);
-                img.setAttribute("rotation", "-90 0 0");
-                img.setAttribute("scale", "1.4 1.4 1.4");
-                img.setAttribute("class", "clickable");
-                img.setAttribute("gesture-handler", "");
-                img.setAttribute("material", "transparent: false; opacity: 1; side: double; alphaTest: 0.5;");
-
-                marker.appendChild(img);
-
-                if (img.object3D) {
-                    img.object3D.visible = false;
-                }
-
-                img.addEventListener("loaded", function() {
-                    setTimeout(() => {
-                        const mesh = img.object3D && img.object3D.children[0];
-                        if (mesh && mesh.material) {
-                            mesh.material.transparent = false;
-                            mesh.material.opacity = 1;
-                            mesh.material.alphaTest = 0.1;
-                            mesh.material.depthWrite = true;
-                            const THREE = AFRAME.THREE;
-                            if (THREE) {
-                                mesh.material.side = THREE.DoubleSide;
-                            }
-                            if (mesh.material.map) {
-                                mesh.material.map.flipY = false;
-                            }
-                            mesh.material.needsUpdate = true;
-                        }
-                        /* 不在此處設 visible = false，否則若 loaded 在 markerFound 之後觸發，
-                           會覆蓋 showAllImages 設定的可見性，導致圖片閃現後消失 */
-                    }, 100);
-                });
-
-                ImageAnimationSystem.images.push({
-                    entity: img,
-                    position: { ...position },
-                    velocity: velocity
-                });
-            });
+            if (!marker) return;
 
             marker.addEventListener("markerFound", function() {
-                showAllImages(marker);
-                updateEffectBoxUI(marker.id);  // 該 marker 的特效筐（上/下兩張圖）顯示並保持，直到下個 marker 掃到再替換
+                updateScannedImagesOverlay();  // 2D 覆蓋層浮動圖，不消失直到下個 marker 掃到再替換
+                updateEffectBoxUI(marker.id);
                 const loc = MARKER_LOCATIONS[marker.id];
                 if (loc) {
                     showInfoModal(loc.title, loc.text);
@@ -1138,6 +1218,21 @@
                             ctx.drawImage(sceneCanvas, 0, 0, width, height);
                         } catch (err) {
                             console.error("無法繪製場景 canvas：", err);
+                        }
+
+                        // 疊加 2D 覆蓋層浮動圖片（與畫面百分比對應）
+                        const layer = document.getElementById("scanned-images-layer");
+                        if (layer && layer.classList.contains("active")) {
+                            const size = Math.round(Math.max(60, Math.min(120, width * 0.18)));
+                            OverlayImageSystem.images.forEach(function (data) {
+                                const imgEl = data.element && data.element.querySelector ? data.element.querySelector("img") : null;
+                                if (!imgEl || !imgEl.complete || !imgEl.naturalWidth) return;
+                                const x = (data.position.x / 100) * width - size / 2;
+                                const y = (data.position.y / 100) * height - size / 2;
+                                try {
+                                    ctx.drawImage(imgEl, 0, 0, imgEl.naturalWidth, imgEl.naturalHeight, x, y, size, size);
+                                } catch (e) { /* 忽略單張繪製錯誤 */ }
+                            });
                         }
 
                         // 疊加特效筐：填滿整寬，只裁切靠螢幕邊緣（up 裁上緣、dw 裁下緣），靠螢幕中間不裁
@@ -1416,9 +1511,9 @@
             }
         });
 
-        // 頁面卸載時停止動畫
+        // 頁面卸載時停止 2D 覆蓋層動畫
         window.addEventListener("beforeunload", function () {
-            ImageAnimationSystem.stop();
+            OverlayImageSystem.stop();
         });
     </script>
 </body>

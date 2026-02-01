@@ -1251,14 +1251,12 @@
                             });
                         }
 
-                        // 疊加特效筐：不裁切上下，整張圖 contain 置中；up 往下、dw 往上避免被切掉
+                        // 疊加特效筐：填滿上下左右，不預留空間；整張圖 contain 置中
                         const effectTop = document.getElementById("effect-box-top");
                         const effectBottom = document.getElementById("effect-box-bottom");
                         const imgTop = document.getElementById("effect-img-top");
                         const imgBottom = document.getElementById("effect-img-bottom");
                         const maxEffectHeight = Math.round(height * 0.2);
-                        const topOffset = Math.round(height * 0.048);
-                        const bottomOffset = Math.round(height * 0.056);
                         function drawEffectBox(imgEl, atTop) {
                             if (!imgEl || !imgEl.src || !imgEl.complete || !imgEl.naturalWidth) return;
                             const nw = imgEl.naturalWidth;
@@ -1268,8 +1266,8 @@
                             const drawH = nh * scale;
                             const drawX = (width - drawW) / 2;
                             const drawY = atTop
-                                ? topOffset + (maxEffectHeight - drawH) / 2
-                                : height - maxEffectHeight - bottomOffset + (maxEffectHeight - drawH) / 2;
+                                ? (maxEffectHeight - drawH) / 2
+                                : height - maxEffectHeight + (maxEffectHeight - drawH) / 2;
                             try {
                                 ctx.drawImage(imgEl, 0, 0, nw, nh, drawX, drawY, drawW, drawH);
                             } catch (e) { /* 忽略單張繪製錯誤 */ }

@@ -16,10 +16,16 @@
         * {
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
         }
 
         body {
-            margin: 0;
             overflow: hidden;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background-color: #000;
@@ -59,20 +65,16 @@
             display: block;
         }
 
-        /* 特效筐圖層：左右貼齊視窗（left/right 0、寬度 100%），僅上下 padding */
+        /* 特效筐圖層：與 HUD 相同用 inset: 0 + padding 8px 10px，貼合左右一致 */
         .effect-box-layer {
             position: fixed;
-            left: 0;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 100%;
+            inset: 0;
             pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             z-index: 5;
-            padding: 8px 0;
+            padding: 8px 10px;
             box-sizing: border-box;
             overflow: visible;
         }
@@ -105,7 +107,7 @@
             padding: 0 4px;
         }
 
-        /* 特效筐：每個 marker 一組兩張圖，寬度 100% 填滿圖層，掃到下個 marker 才替換 */
+        /* 特效筐：寬度 100% 填滿圖層（與 HUD 同套 inset + padding，自然貼合） */
         .effect-box {
             width: 100%;
             max-width: 100%;
@@ -223,7 +225,7 @@
             }
 
             .effect-box-layer {
-                padding: 6px 0;
+                padding: 6px 8px;
             }
 
             .effect-box-top {
@@ -270,7 +272,7 @@
         /* 小屏幕手機優化 */
         @media (max-width: 360px) {
             .effect-box-layer {
-                padding: 6px 0;
+                padding: 6px 8px;
             }
 
             .effect-box-top {

@@ -27,6 +27,17 @@
             user-select: none;
         }
 
+        /* 特效筐圖層：在按鈕下一層、在 marker 掃描物件上一層 */
+        .effect-box-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 5;
+        }
+
         .hud {
             position: fixed;
             inset: 0;
@@ -646,11 +657,18 @@
         <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- 介面 HUD：返回首頁與拍照按鈕；特效筐（最上/最下）依當前 marker 顯示兩張圖，掃到下個 marker 才替換 -->
-    <div class="hud">
+    <!-- 特效筐圖層：z-index 5，在 AR 場景上、在按鈕 HUD 下 -->
+    <div class="effect-box-layer">
         <div class="effect-box effect-box-top" id="effect-box-top">
             <img id="effect-img-top" src="" alt="">
         </div>
+        <div class="effect-box effect-box-bottom" id="effect-box-bottom">
+            <img id="effect-img-bottom" src="" alt="">
+        </div>
+    </div>
+
+    <!-- 介面 HUD：返回首頁與拍照按鈕（z-index 10，最上層） -->
+    <div class="hud">
         <div class="hud-top">
             <button class="btn-back" type="button" onclick="window.location.href='index.html'">
                 <span>← 返回首頁</span>
@@ -666,9 +684,6 @@
             <button id="riddle-btn" class="btn-riddle" type="button">
                 猜燈謎
             </button>
-        </div>
-        <div class="effect-box effect-box-bottom" id="effect-box-bottom">
-            <img id="effect-img-bottom" src="" alt="">
         </div>
     </div>
 
@@ -759,13 +774,13 @@
 
         // 每個 marker 對應一組特效筐：兩張圖（top 顯示在畫面最上、bottom 顯示在畫面最下），掃到下個 marker 才替換
         const MARKER_EFFECT_IMAGES = {
-            "animated-marker": { top: "up/up1.jpg", bottom: "up/dw1.jpg" },
-            "marker-2": { top: "up/up2.jpg", bottom: "up/dw2.jpg" },
-            "marker-3": { top: "up/up3.jpg", bottom: "up/dw3.jpg" },
-            "marker-6": { top: "up/up4.jpg", bottom: "up/dw4.jpg" },
-            "marker-7": { top: "up/up5.jpg", bottom: "up/dw5.jpg" },
-            "marker-8": { top: "up/up6.jpg", bottom: "up/dw6.jpg" },
-            "marker-9": { top: "up/up7.jpg", bottom: "up/dw7.jpg" }
+            "animated-marker": { top: "up/up1.png", bottom: "up/dw1.png" },
+            "marker-2": { top: "up/up2.png", bottom: "up/dw2.png" },
+            "marker-3": { top: "up/up3.png", bottom: "up/dw3.png" },
+            "marker-6": { top: "up/up4.png", bottom: "up/dw4.png" },
+            "marker-7": { top: "up/up5.png", bottom: "up/dw5.png" },
+            "marker-8": { top: "up/up6.png", bottom: "up/dw6.png" },
+            "marker-9": { top: "up/up7.png", bottom: "up/dw7.png" }
         };
 
         // 根據命名規則自動產生圖片列表：img (1).png ~ img (654).png
